@@ -31,10 +31,12 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'django_browser_reload',
+
     'import_export',
     'fontawesome_6',
     'admin_interface',
     'colorfield',
+
     'django.contrib.humanize',
     'django.contrib.admin',
     'django.contrib.auth',

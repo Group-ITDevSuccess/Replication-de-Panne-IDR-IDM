@@ -1,0 +1,39 @@
+<div id="addClientModal" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" class="needs-validation" action="{% url 'app:add-client' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h4 class="modal-title">Ajout de Client</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="client_form.group">
+                        {{ client_form.client_name.label_tag }}
+                        {{ client_form.client_name }}
+                        <div class="invalid-feedback">Nom du client requis.</div>
+                    </div>
+                    <div class="client_form.group">
+                        {{ client_form.email.label_tag }}
+                        {{ client_form.email }}
+                        <div class="invalid-feedback">Email invalide.</div>
+                    </div>
+                    <div class="client_form.group ">
+                        {{ client_form.address.label_tag }}
+                        {{ client_form.address }}
+                        <div class="invalid-feedback">Adresse requise.</div>
+                    </div>
+                    <div class="client_form.group">
+                        {{ client_form.phone.label_tag }}
+                        {{ client_form.phone }}
+                        <div class="invalid-feedback">Numéro de téléphone requis.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

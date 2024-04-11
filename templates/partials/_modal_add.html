@@ -1,0 +1,46 @@
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Ajout</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="post" action="{% url 'app:add-machine' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="{{ form_add.societe.id_for_label }}"
+                                       class="col-form-label">{{ form_add.societe.label }} <code>*</code></label>
+                                {{ form_add.societe }}
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="{{ form_add.matriculate.id_for_label }}"
+                                       class="col-form-label">{{ form_add.matriculate.label }} <code>*</code></label>
+                                {{ form_add.matriculate }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form_add.model.id_for_label }}" class="col-form-label">{{ form_add.model.label }}
+                            <code>*</code></label>
+                        {{ form_add.model }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form_add.description.id_for_label }}"
+                               class="col-form-label">{{ form_add.description.label }}</label>
+                        {{ form_add.description }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

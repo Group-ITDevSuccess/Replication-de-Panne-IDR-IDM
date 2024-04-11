@@ -1,4 +1,5 @@
-
+{% load static %}
+{% load fontawesome_6 %}
 <!doctype html>
 <html lang="fr">
 <head>
@@ -7,10 +8,26 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Panne | {% block title %}{% endblock %}</title>
+    {% fontawesome_6_static %}
+    <link rel="stylesheet" href="{% static 'dist/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'dist/css/selectize.default.min.css' %}">
+    <link rel="stylesheet" href="{% static 'style.css' %}">
     {% block style %}{% endblock %}
 </head>
 <body>
-{% block content%}{% endblock %}
+{% include 'partials/_navbar.html' %}
+{% block content %}{% endblock %}
+<script >
+
+</script>
+<script src="{% static 'assets/js/jquery.min.js' %}"></script>
+<script src="{% static 'dist/js/popper.min.js' %}"></script>
+<script src="{% static 'assets/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'tabulator/dist/js/tabulator.min.js' %}"></script>
+<script src="{% static 'tabulator/dist/js/luxon.js' %}"></script>
+<script src="{% static 'dist/js/bootstrap-select.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.umd.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.plugin.autotable.min.js' %}"></script>
 {% block script %}{% endblock %}
 </body>
 </html>
