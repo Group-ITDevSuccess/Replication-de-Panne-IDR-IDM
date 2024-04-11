@@ -19,39 +19,13 @@
                 <a class="nav-link " href="" tabindex="-1">Administration</a>
             </li>
         </ul>
+        <form class="form-inline my-2 my-lg-0">
+            {{ form.company }}
+            <button class="btn btn-outline-success my-2 my-sm-0" id="submitCompanyForm" type="submit"><i
+                    class="fas fa-search"></i></button>
+        </form>
+
         <div class="navbar-text d-flex my-2 my-lg-0">
-            <form method="post" class="d-flex align-items-center mr-2" action="">
-                {% csrf_token %}
-                <div class="col-auto">
-                    <div class="input-group">
-                        {{ form.societe }}
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary d-none" id="submitButton"></button>
-            </form>
-            <form action="#" id="depotForm" class="d-flex align-items-center">
-                <div class="col-auto">
-                    <div class="input-group-prepend">
-                        <label for="filtersSelect"></label>
-                        <select id="filtersSelect" name="filtersSelect" class="selectpicker show-tick"
-                                data-live-search="true" data-size="8" data-style="btn-warning"
-                                title="Choisir Immat ou N° série ..." multiple
-                                data-selected-text-format="count"
-                                data-actions-box='true'
-                                data-size=10>
-                            {% for machine in machines %}
-                                <option value="{{ machine.uid }}" data-subtext="{{ machine.matriculate }}">{{ machine.model }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="col-auto">
-                    <button type="button" id="submitAddSerie" class="btn btn-outline-warning mr-2" data-toggle="modal" data-target="#exampleModal" data-whatever="Immatricule ou N° série"><i
-                            class="fas fa-plus-circle"></i></button>
-                    <button type="submit" id="submitButtonNav" class="btn btn-outline-success"><i
-                            class="fas fa-search"></i></button>
-                </div>
-            </form>
             <a href="" class="btn btn-outline-danger ml-1 my-2 my-sm-0">Déconnecter</a>
         </div>
     </div>

@@ -1,0 +1,46 @@
+<div class="modal fade" id="addCompanyModal" tabindex="-1" aria-labelledby="addCompanyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCompanyModalLabel">Ajout</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="post" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="{{ form_add_machine.company.id_for_label }}"
+                                       class="col-form-label">{{ form_add_machine.company.label }} <code>*</code></label>
+                                {{ form_add_machine.company }}
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="{{ form_add_machine.matriculate.id_for_label }}"
+                                       class="col-form-label">{{ form_add_machine.matriculate.label }} <code>*</code></label>
+                                {{ form_add_machine.matriculate }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form_add_machine.model.id_for_label }}" class="col-form-label">{{ form_add_machine.model.label }}
+                            <code>*</code></label>
+                        {{ form_add_machine.model }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form_add_machine.description.id_for_label }}"
+                               class="col-form-label">{{ form_add_machine.description.label }}</label>
+                        {{ form_add_machine.description }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

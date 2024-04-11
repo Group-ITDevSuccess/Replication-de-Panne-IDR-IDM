@@ -1,0 +1,445 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+    <main class="container-fluid mt-4">
+        <div class="mb-2">
+            <button class="btn btn-secondary" id="download-xlsx"><i class="fas fa-file-excel"></i></button>
+            <button class="btn btn-secondary" id="download-pdf"><i class="fas fa-file-pdf"></i></button>
+            <button class="btn btn-secondary" id="print-table"><i class="fas fa-print"></i></button>
+            <button class="btn btn-info" id="history-undo"><i class="fas fa-undo-alt"></i></button>
+            <button class="btn btn-info" id="history-redo"><i class="fas fa-redo-alt"></i></button>
+            <button type="button" class="btn btn-outline-warning" data-toggle="modal"
+                    data-target="#listMachineModal"><i class="fas fa-list-alt"></i></button>
+            <button type="button" class="btn btn-outline-warning" data-toggle="modal"
+                    data-target="#addCompanyModal"><i class="fas fa-plus-circle"></i></button>
+        </div>
+        <div id="pannes"></div>
+    </main>
+{% endblock %}
+{% block script %}
+
+    {#    Note responsive : https://jsfiddle.net/3fLwej4u/#}
+    {#    Tabulator : https://tabulator.info/#}
+    {#    https://tabulator.info/docs/6.2/data#}
+    <script type="text/javascript">
+        let iconDelete = function (cell, formatterParams) { //plain text value
+            return "<i class='fa fa-trash-can'></i>";
+        };
+
+        let tableMachine = new DataTable('#tableMachine', {
+            info: false,
+            filter: false,
+            select: true,
+            createdRow: function (row, data, dataIndex) {
+                tableMachine.rows().every(function (idx) {
+                    $(this.node()).find('td').eq(0).html(idx + 1);
+                });
+            },
+        });
+
+
+        let dateEditor = function (cell, onRendered, success, cancel) {
+            try {
+                //create and style input
+                let input = document.createElement("input");
+
+                let cellValue = cell.getValue();
+                if (cellValue) {
+                    cellValue = luxon.DateTime.fromFormat(cell.getValue(), "dd/MM/yyyy").toFormat("yyyy-MM-dd");
+
+                    input.setAttribute("type", "date");
+
+                    input.style.padding = "4px";
+                    input.style.width = "100%";
+                    input.style.boxSizing = "border-box";
+
+                    input.value = cellValue;
+
+                    onRendered(function () {
+                        input.focus();
+                        input.style.height = "100%";
+                    });
+
+                    function onChange() {
+                        if (input.value != cellValue) {
+                            success(luxon.DateTime.fromFormat(input.value, "yyyy-MM-dd").toFormat("dd/MM/yyyy"));
+                        } else {
+                            cancel();
+                        }
+                    }
+
+                    //submit new value on blur or change
+                    input.addEventListener("blur", onChange);
+
+                    //submit new value on enter
+                    input.addEventListener("keydown", function (e) {
+                        if (e.keyCode == 13) {
+                            onChange();
+                        }
+
+                        if (e.keyCode == 27) {
+                            cancel();
+                        }
+                    });
+                }
+
+                return input;
+            } catch (e) {
+                cancel()
+            }
+
+        };
+
+        let tickCrossEditor = function (cell, onRendered, success, cancel) {
+            // Create the checkbox element
+            let checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+
+            // Get the current value of the cell
+            let currentValue = cell.getValue();
+
+            // Check if both matriculate and model fields are not empty
+            let canTick = cell.getRow().getData().matriculate && cell.getRow().getData().model;
+
+            // Set the checkbox state based on the current value and allowed state
+            checkbox.checked = currentValue === true && canTick;
+            checkbox.disabled = !canTick;
+
+            // Handle checkbox change event
+            checkbox.addEventListener("change", function () {
+                if (canTick) {
+                    success(checkbox.checked);
+                } else {
+                    // If not allowed to tick, reset the checkbox and show an alert
+                    checkbox.checked = false;
+                    alert("Please fill in 'Matriculate' and 'Model' fields before marking.");
+                }
+            });
+
+            onRendered(function () {
+                cell.getElement().appendChild(checkbox);
+            });
+
+            return checkbox;
+        };
+
+        let headerPopupFormatter = function (e, column, onRendered) {
+            let container = document.createElement("div");
+
+            let label = document.createElement("label");
+            label.innerHTML = "Filtre Colonne:";
+            label.style.display = "block";
+            label.style.fontSize = ".7em";
+
+            let input = document.createElement("input");
+            input.placeholder = "Chercher ...";
+            input.value = column.getHeaderFilterValue() || "";
+
+            input.addEventListener("keyup", (e) => {
+                column.setHeaderFilterValue(input.value);
+            });
+
+            container.appendChild(label);
+            container.appendChild(input);
+
+            return container;
+        }
+
+        let emptyHeaderFilter = function () {
+            return document.createElement("div");
+        }
+
+        let addRow = function () {
+            let newRowData = {};
+            table.addRow(newRowData, false);
+        }
+
+        function sendSelectedRows() {
+            let editedCells = table.getEditedCells();
+            let selectedRowsData = editedCells.filter(cell => {
+                let rowData = cell.getRow().getData();
+                return cell.getColumn().getField() === "tickCross" && rowData.tickCross === true;
+            }).map(cell => cell.getRow().getData());
+            console.log(selectedRowsData)
+            fetch("", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(selectedRowsData)
+            }).then(response => response.json())
+                .then(data => {
+                    // Handle the response from the backend (success/failure)
+                    console.log("AJAX POST response:", data);
+                })
+                .catch(error => {
+                    console.error("AJAX POST error:", error);
+                });
+        }
+
+        function uniqueCellFormatter(cell) {
+            let data = table.getData(); // Get all table data
+            let rowData = cell.getRow().getData(); // Get the data of the current row
+            let value = cell.getValue();
+
+            // Check if the value is unique
+            let isUnique = data.every(row => row.matriculate !== value || row === cell.getRow());
+
+            if (!isUnique) {
+                // Set a red border if the value is not unique
+                return {
+                    border: "2px solid red"
+                };
+            }
+
+            // No border by default
+            return {};
+        }
+
+        let table = new Tabulator("#pannes", {
+            ajaxContentType: "json",
+            layout: "fitDataFill",
+            printAsHtml: true,
+            printHeader: "<h1>Example Table Header<h1>",
+            printFooter: "<h2>Example Table Footer<h2>",
+            footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id='valid-rows' onClick="sendSelectedRows()"><i class='fas fa-save'></i></button>`,
+            tooltipsHeader: true,
+            rowHeader: {
+                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()" ><i class='fas fa-plus'></i></button>`,
+                headerSort: false,
+                resizable: false,
+                minWidth: 30,
+                width: 35,
+                frozen: true,
+                rowHandle: true,
+                formatter: "handle",
+            },
+            movableRows: true,
+            history: true,
+            selectableRangeColumns: true,
+            selectableRangeRows: true,
+            headerSortClickElement: 'icon',
+            selectableRangeClearCells: true,
+            editTriggerEvent: "dblclick",
+            pagination: "local",
+            paginationSize: 10,
+            paginationSizeSelector: [20, 30, 40],
+            paginationCounter: "rows",
+            renderHorizontal: "virtual",
+            resizableColumnFit: true,
+            resizableRowGuide: true,
+            resizableColumnGuide: true,
+            printRowRange: "selected",
+            initialSort: [
+                {column: "matriculate", dir: "asc"},
+            ],
+            placeholder: "Aucun Donnée",
+            placeholderHeaderFilter: 'Aucun Donnée Coorespondant',
+            headerSort: true,
+            columnDefaults: {
+                tooltip: true,
+                headerHozAlign: "center",
+                editor: "input",
+                resizable: "header",
+            },
+            columns: [
+                {
+                    title: "<code>*</code>",
+                    frozen: true,
+                    resizable: false,
+                    hozAlign: "center",
+                    formatter: "tickCross",
+                    editor: tickCrossEditor,
+                    headerSort: false,
+                    cellEdited: function (cell) {
+                        let edited = cell.isEdited();
+                        if (edited) {
+                            let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
+                            if (conf) {
+                                const rowData = cell.getRow().getData();
+                                console.log(rowData)
+                                fetch("", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify(rowData)
+                                })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        // Handle the response from the backend (success/failure)
+                                        console.log("AJAX POST response:", data);
+                                    })
+                                    .catch(error => {
+                                        console.error("AJAX POST error:", error);
+                                        return;
+                                    });
+                            }
+                        }
+                    }
+                },
+                {
+                    title: "N°",
+                    resizable: false,
+                    formatter: "rownum",
+                    hozAlign: "center",
+                    width: 40,
+                    frozen: true,
+                    headerSort: false,
+                },
+                {
+                    title: "<code>*</code> Immat ou N° série ",
+                    field: "matriculate",
+                    width: 150,
+                    frozen: true,
+                    editor: "list",
+                    editorParams: {
+                        sort: "asc",
+                        valuesURL: "",
+                        placeholderLoading: "Chargement...",
+                        filterRemote: true,
+                    },
+                    clearable: true,
+                    placeholderEmpty: "Aucun Matricule",
+                    headerPopupIcon: "<i class='fas fa-filter' title='Filter column'></i>",
+                    headerFilter: emptyHeaderFilter,
+                    headerPopup: headerPopupFormatter,
+                    headerFilterFunc: "like",
+                },
+                {
+                    title: "<code>*</code> Modèle / Remorque",
+                    field: "model",
+                    editor: "input",
+                    validator: "required",
+                    frozen: true,
+                },
+                {
+                    title: "NOM DU CLIENT",
+                    field: "client_machine",
+                    width: 150,
+                    editor: "list",
+                },
+                {
+                    title: "Localisation",
+                    field: "localisation",
+                    editor: "list",
+                    validator: "required",
+                    clearable: true,
+                    placeholderEmpty: "Aucun Localisation",
+                    editorParams: {
+                        autocomplete: "true", allowEmpty: true, listOnEmpty: true, valuesLookup: true,
+                        valuesURL: "",
+                        placeholderLoading: "Chargement...",
+                    },
+                    freetext: true,
+                },
+                {
+                    title: "Début panne", field: "start_breakdown", sorter: "date", editor: dateEditor
+                },
+                {
+                    title: "Demande rdv", field: "request_appointment", editor: dateEditor, sorter: "date"
+                },
+                {
+                    title: "Entrée garage",
+                    field: "garage_entrance",
+                    editor: "input",
+                    sorter: "date",
+                    hozAlign: "center"
+                },
+                {title: "N° OR (ordre de réparation)", field: "repair_order", editor: true},
+                {title: "DEMANDE DE TRAVAUX", field: "work_request", editor: "input"},
+                {
+                    title: "ETA PIECES REF",
+                    field: "condition_pieces",
+                    formatter: "star",
+                    hozAlign: "center",
+                    width: 100,
+                    editor: true
+                },
+                {
+                    title: "Date de sortie du garage",
+                    field: "garage_leave",
+                    editor: dateEditor,
+                    width: 150,
+                    sorter: "date",
+                    hozAlign: "center"
+                },
+                {
+                    title: "Date prévisionnelle de sortie garage",
+                    field: "garage_exit",
+                    editor: dateEditor,
+                    width: 150,
+                    sorter: "date",
+                    hozAlign: "center"
+                },
+                {
+                    formatter: iconDelete,
+                    headerSort: false,
+                    frozen: true,
+                    resizable: false,
+                    hozAlign: "center",
+                    cellClick: function (e, cell) {
+                        table.deleteRow(cell.getRow());
+                    }
+                }
+            ],
+        });
+        /*
+
+       const submitButton = document.getElementById('submitButtonNav');
+       const filtersSelect = document.getElementById('filtersSelect');
+       let data;
+       submitButton.addEventListener('click', function (event) {
+           event.preventDefault();
+
+           const selectedDepots = Array.from(filtersSelect.selectedOptions).map(option => option.value);
+           const selectedSociete = document.getElementById('id_societe').value;
+           data = {
+               societe: selectedSociete,
+               filters: selectedDepots
+           };
+
+           table.setData("", data, "POST")
+       });
+       document.getElementById('id_company').addEventListener('change', function () {
+           document.getElementById('submitCompanyForm').click();
+       });*/
+
+        document.getElementById("download-xlsx").addEventListener("click", function () {
+            table.download("xlsx", "data.xlsx", {sheetName: "My Data"});
+        });
+
+
+        document.getElementById("print-table").addEventListener("click", function () {
+            table.print(false, true);
+        });
+
+        //trigger download of data.pdf file
+        document.getElementById("download-pdf").addEventListener("click", function () {
+            table.download("pdf", "data.pdf", {
+                orientation: "portrait", //set page orientation to portrait
+                title: "Example Report", //add title to report
+            });
+        });
+
+
+        table.on("rowMoved", function (row) {
+            console.log("Row: " + row.getData().matriculate + " has been moved");
+        });
+
+        //undo button
+        document.getElementById("history-undo").addEventListener("click", function () {
+            table.undo();
+        });
+
+        //redo button
+        document.getElementById("history-redo").addEventListener("click", function () {
+            table.redo();
+        });
+
+
+        window.addEventListener('resize', function () {
+            table.redraw();
+        });
+    </script>
+{% endblock %}

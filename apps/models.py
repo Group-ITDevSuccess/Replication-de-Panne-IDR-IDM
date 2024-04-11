@@ -22,13 +22,13 @@ class Company(BaseModel):
 
 
 class Machine(BaseModel):
-    name = models.CharField(max_length=100, unique=True)
+    matriculate = models.CharField(max_length=100, unique=True)
     model = models.CharField(max_length=150)
     description = models.TextField(blank=True)
-    societe = models.ForeignKey('Company', on_delete=models.CASCADE)
+    company = models.ForeignKey('Company', on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.name
+        return self.matriculate
 
 
 class Location(BaseModel):
