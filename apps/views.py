@@ -1,4 +1,5 @@
 import json
+from django.utils.translation import gettext as _
 
 from django.contrib import messages
 from django.http import JsonResponse
@@ -123,14 +124,10 @@ def get_all_matriculate(request):
 @csrf_exempt
 def get_machines(request, company=None):
     machines = []
-    company_names = company.split(',')
 
-    if company_names is not None and len(company_names) > 0:
-        companies = Company.objects.filter(name__in=company_names)
-        if companies:
-            machines_qs = Machine.objects.filter(company__in=companies)
-            for machine in machines_qs:
-                machines.append({'label': machine.matriculate, 'value': machine.matriculate})
+    machines_qs = Machine.objects.all()
+    for machine in machines_qs:
+        machines.append({'label': machine.matriculate, 'value': machine.matriculate})
     return JsonResponse(machines, safe=False)
 
 
@@ -139,23 +136,22 @@ def post_line(request):
     if request.method == 'POST':
         data = json.loads(request.body.decode('utf-8'))
         matriculate = data.get('matriculate')
-        company_name = data.get('company')
+        company_name = data.get('company_name')
 
         try:
             machine = Machine.objects.get(matriculate=matriculate)
             company = Company.objects.get(name=company_name)
-            # if 'model' in data:
-            #     Breakdown.objects.update_or_create(company=company, machine=machine, defaults={'model': data['model']})
-            # else:
+            if Breakdown.objects.filter(machine=machine).exists():
+                return JsonResponse({'error': "L'immatriculation sélectionnée est déjà utilisée."},
+                                    status=409)  # 409: Conflict
             Breakdown.objects.update_or_create(company=company, machine=machine)
-
-            return JsonResponse({'message': 'Data saved successfully.'}, status=200)
+            return JsonResponse({'message': 'Données enregistrées avec succès.'}, status=201)  # 201: Created
         except Machine.DoesNotExist:
-            return JsonResponse({'error': 'Machine not found'}, status=404)
+            return JsonResponse({'error': "Machine non trouvée."}, status=404)  # 404: Not Found
         except Company.DoesNotExist:
-            return JsonResponse({'error': 'Company not found'}, status=404)
+            return JsonResponse({'error': "Société non trouvée."}, status=404)
         except Exception as e:
             print('error', str(e))
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'error': str(e)}, status=500)  # 500: Internal Server Error
 
-    return JsonResponse({'error': 'Method not allowed.'}, status=405)
+    return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)  # 405: Method Not Allowed

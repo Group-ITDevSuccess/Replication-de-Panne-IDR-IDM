@@ -4,7 +4,8 @@
     <main class="container-fluid mt-4">
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
+                     role="alert">
                     <strong>{{ message.tags|title }}!</strong> {{ message.message }}
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
@@ -283,15 +284,19 @@
                                     },
                                     body: JSON.stringify(rowData)
                                 })
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        // Handle the response from the backend (success/failure)
-                                        console.log("AJAX POST response:", data);
+                                    .then(response => {
+                                        if (response.status === 409) {
+                                            return response.json().then(data => {
+                                                alert(data.error);
+                                                location.reload(); 
+                                            });
+                                        } 
+                                        return response.json(); // Parser la réponse JSON pour les requêtes réussies
                                     })
-                                    .catch(error => {
-                                        console.error("AJAX POST error:", error);
-                                        return;
-                                    });
+                                    .then(data => {
+                                        alert(data.message); // Afficher le message de succès depuis le serveur dans une alerte
+                                    })
+
                             }
                         }
                     }
