@@ -1,6 +1,7 @@
 from django import forms
+from django_select2.forms import ModelSelect2Widget
 
-from apps.models import Machine, Company
+from apps.models import Machine, Company, Breakdown
 
 
 class SearchForm(forms.Form):
@@ -39,4 +40,15 @@ class MachineForm(forms.ModelForm):
             'description': forms.Textarea(
                 attrs={'class': 'form-control', 'placeholder': 'Ici les informations supplementaires',
                        'required': False}),
+        }
+
+
+class BreakdownForm(forms.ModelForm):
+    class Meta:
+        model = Breakdown
+        fields = '__all__'  # Include all fields
+        widgets = {
+            'company': ModelSelect2Widget(model=Company, search_fields=['name__icontains']),
+            'machine': ModelSelect2Widget(model=Machine, search_fields=['matriculate__icontains']),
+            # Other fields as needed
         }

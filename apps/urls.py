@@ -9,6 +9,7 @@ urlpatterns = [
     path('get-all-companies/', views.get_all_companies, name='get_all_companies'),
     path('get-all-matriculate/', views.get_all_matriculate, name='get_all_matriculate'),
     path('post-line/', views.post_line, name='post_line'),
+    path('update-line/', views.update_line, name='update_line'),
     path('delete-breakdown/', views.delete_breakdown, name='delete_breakdown'),
 
     path('get-machines/<str:company>/', views.get_machines, name='get_machines'),

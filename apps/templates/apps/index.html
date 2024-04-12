@@ -12,7 +12,6 @@
                     </button>
                 </div>
             {% endfor %}
-
         {% endif %}
         <div class="mb-2">
             <button class="btn btn-secondary" id="download-xlsx"><i class="fas fa-file-excel"></i></button>
@@ -55,58 +54,6 @@
             },
         });
 
-
-        let dateEditor = function (cell, onRendered, success, cancel) {
-            try {
-                //create and style input
-                let input = document.createElement("input");
-
-                let cellValue = cell.getValue();
-                if (cellValue) {
-                    cellValue = luxon.DateTime.fromFormat(cell.getValue(), "dd/MM/yyyy").toFormat("yyyy-MM-dd");
-
-                    input.setAttribute("type", "date");
-
-                    input.style.padding = "4px";
-                    input.style.width = "100%";
-                    input.style.boxSizing = "border-box";
-
-                    input.value = cellValue;
-
-                    onRendered(function () {
-                        input.focus();
-                        input.style.height = "100%";
-                    });
-
-                    function onChange() {
-                        if (input.value != cellValue) {
-                            success(luxon.DateTime.fromFormat(input.value, "yyyy-MM-dd").toFormat("dd/MM/yyyy"));
-                        } else {
-                            cancel();
-                        }
-                    }
-
-                    //submit new value on blur or change
-                    input.addEventListener("blur", onChange);
-
-                    //submit new value on enter
-                    input.addEventListener("keydown", function (e) {
-                        if (e.keyCode == 13) {
-                            onChange();
-                        }
-
-                        if (e.keyCode == 27) {
-                            cancel();
-                        }
-                    });
-                }
-
-                return input;
-            } catch (e) {
-                cancel()
-            }
-
-        };
 
         let tickCrossEditor = function (cell, onRendered, success, cancel) {
             // Create the checkbox element
@@ -197,7 +144,6 @@
 
         function uniqueCellFormatter(cell) {
             let data = table.getData(); // Get all table data
-            let rowData = cell.getRow().getData(); // Get the data of the current row
             let value = cell.getValue();
 
             // Check if the value is unique
@@ -213,6 +159,7 @@
             // No border by default
             return {};
         }
+    
 
         let table = new Tabulator("#pannes", {
             ajaxURL: '{{ get_breakdown_url }}',
@@ -221,7 +168,7 @@
             printAsHtml: true,
             printHeader: "<h1>Example Table Header<h1>",
             printFooter: "<h2>Example Table Footer<h2>",
-            footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id='valid-rows' onClick="sendSelectedRows()"><i class='fas fa-save'></i></button>`,
+            footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id='valid-rows' onClick=""><i class='fas fa-save'></i></button><button type='button' class='btn btn-warning btn-sm mr-2' id='reload-table' onClick="window.reload()"><i class='fas fa-sync-alt'></i></button>`,
             tooltipsHeader: true,
             rowHeader: {
                 title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()"><i class='fas fa-plus'></i></button>`,
@@ -231,10 +178,16 @@
                 width: 35,
                 frozen: true,
                 rowHandle: true,
+                editor: false,
                 formatter: "handle",
             },
             movableRows: true,
             history: true,
+            success: function (data) {
+                // Access breakdowns data from 'data' key (assuming the backend sends an object with a 'data' key)
+                const breakdowns = data.data;
+                table.setData(breakdowns);  // Set data to the table using setData method
+            },
             selectableRangeColumns: true,
             selectableRangeRows: true,
             headerSortClickElement: 'icon',
@@ -276,27 +229,44 @@
                             let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
                             if (conf) {
                                 const rowData = cell.getRow().getData();
-                                console.log(rowData)
-                                fetch("{% url 'apps:post_line' %}", {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json"
-                                    },
-                                    body: JSON.stringify(rowData)
-                                })
-                                    .then(response => {
-                                        if (response.status === 409) {
-                                            return response.json().then(data => {
-                                                alert(data.error);
-                                                location.reload(); 
-                                            });
-                                        } 
-                                        return response.json(); // Parser la réponse JSON pour les requêtes réussies
+                                console.log(table.getEditedCells())
+                                if (rowData.uid) {
+                                    // Update existing breakdown using apps:update_line
+                                    fetch("{% url 'apps:update_line' %}", {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json"
+                                        },
+                                        body: JSON.stringify(rowData)
                                     })
-                                    .then(data => {
-                                        alert(data.message); // Afficher le message de succès depuis le serveur dans une alerte
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                cell.getRow().update(rowData);
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error("Error updating breakdown:", error);
+                                        });
+                                } else {
+                                    fetch("{% url 'apps:post_line' %}", {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json"
+                                        },
+                                        body: JSON.stringify(rowData)
                                     })
+                                        .then(response => {
+                                            if (response.status === 409) {
+                                                return response.json().then(data => {
+                                                    alert(data.error);
+                                                    location.reload();
+                                                });
+                                            }
+                                            return response.json(); // Parser la réponse JSON pour les requêtes réussies
+                                        })
 
+                                }
                             }
                         }
                     }
@@ -307,6 +277,7 @@
                     formatter: "rownum",
                     hozAlign: "center",
                     width: 40,
+                    editor: false,
                     frozen: true,
                     headerSort: false,
                 },
@@ -314,31 +285,32 @@
                     title: "<code>*</code> Société",
                     field: "company_name",
                     editor: "list",
-                    valuesLookup: true,  //lookup all unique values
-                    valuesLookupField: "matriculate",
+                    width: 100,
+                    {#valuesLookup: true,  //lookup all unique values#}
+                    {#valuesLookupField: "matriculate",#}
                     validator: "required",
                     frozen: true,
                     editorParams: {
                         sort: "asc",
                         valuesURL: "{% url 'apps:get_all_companies' %}",
                         placeholderLoading: "Chargement...",
-                        filterRemote: true,
                     },
                 },
                 {
                     title: "<code>*</code> Immat ou N° série ",
                     field: "matriculate",
-                    width: 150,
+                    width: 125,
                     frozen: true,
                     editor: "list",
+                    {#clearable: true,#}
                     editorParams: {
+                        placeholderEmpty: "Aucun Matricule",
+
                         sort: "asc",
                         valuesURL: "{% if get_machines_url == '' %}{% url 'apps:get_all_matriculate' %}{% else %}{{ get_machines_url }}{% endif %}",
                         placeholderLoading: "Chargement...",
-                        filterRemote: true,
+
                     },
-                    clearable: true,
-                    placeholderEmpty: "Aucun Matricule",
                     headerPopupIcon: "<i class='fas fa-filter' title='Filter column'></i>",
                     headerFilter: emptyHeaderFilter,
                     headerPopup: headerPopupFormatter,
@@ -349,67 +321,139 @@
                     title: "Modèle / Remorque",
                     field: "model",
                     editor: "input",
-                    valuesLookup: true,  //lookup all unique values
-                    valuesLookupField: "matriculate",
                     frozen: true,
+                    width: 125,
                 },
                 {
                     title: "NOM DU CLIENT",
-                    field: "client_machine",
+                    field: "client_name",
                     width: 150,
                     editor: "list",
                 },
                 {
                     title: "Localisation",
-                    field: "localisation",
+                    field: "location_name",
                     editor: "list",
                     validator: "required",
-                    clearable: true,
-                    placeholderEmpty: "Aucun Localisation",
                     editorParams: {
+                        placeholderEmpty: "Aucun Localisation",
                         autocomplete: "true", allowEmpty: true, listOnEmpty: true, valuesLookup: true,
                         valuesURL: "",
                         placeholderLoading: "Chargement...",
                     },
-                    freetext: true,
                 },
                 {
-                    title: "Début panne", field: "start_breakdown", sorter: "date", editor: dateEditor
+                    title: "Début panne", field: "start", sorter: "date", width: 125, editor: "date", editorParams: {
+                        min: "01/01/2020", // the minimum allowed value for the date picker
+                        max: "31/12/2024", // the maximum allowed value for the date picker
+                        format: "dd/MM/yyyy", // the format of the date value stored in the cell
+                        verticalNavigation: "table", //navigate cursor around table without changing the value
+                        elementAttributes: {
+                            title: "slide bar to choose option" // custom tooltip
+                        }
+                    }
                 },
                 {
-                    title: "Demande rdv", field: "request_appointment", editor: dateEditor, sorter: "date"
+                    title: "Demande rdv",
+                    field: "appointment",
+                    sorter: "date",
+                    width: 125,
+                    editor: "date",
+                    editorParams: {
+                        min: "01/01/2020", // the minimum allowed value for the date picker
+                        max: "31/12/2024", // the maximum allowed value for the date picker
+                        format: "dd/MM/yyyy", // the format of the date value stored in the cell
+                        verticalNavigation: "table", //navigate cursor around table without changing the value
+                        elementAttributes: {
+                            title: "slide bar to choose option" // custom tooltip
+                        }
+                    }
                 },
                 {
                     title: "Entrée garage",
-                    field: "garage_entrance",
-                    editor: "input",
+                    field: "enter",
                     sorter: "date",
-                    hozAlign: "center"
+                    width: 125,
+                    editor: "date", editorParams: {
+                        min: "01/01/2020", // the minimum allowed value for the date picker
+                        max: "31/12/2024", // the maximum allowed value for the date picker
+                        format: "dd/MM/yyyy", // the format of the date value stored in the cell
+                        verticalNavigation: "table", //navigate cursor around table without changing the value
+                        elementAttributes: {
+                            title: "slide bar to choose option" // custom tooltip
+                        }
+                    }
                 },
-                {title: "N° OR (ordre de réparation)", field: "repair_order", editor: true},
-                {title: "DEMANDE DE TRAVAUX", field: "work_request", editor: "input"},
+                {
+                    title: "N° OR (ordre de réparation)",
+                    hozAlign: "left",
+                    field: "order",
+                    width: 100,
+                    editor: "number",
+                    editorParams: {
+                        min: 0,
+                        max: 100,
+                        elementAttributes: {
+                            maxlength: "10", //set the maximum character length of the input element to 10 characters
+                        },
+                        mask: "999",
+                        selectContents: true,
+                        verticalNavigation: "table", //up and down arrow keys navigate away from cell without changing value
+                    }
+                },
+                {
+                    title: "DEMANDE DE TRAVAUX",
+                    field: "works",
+                    editor: "textarea",
+                    width: 250,
+                    editorParams: {
+                        selectContents: true,
+                        verticalNavigation: "editor", //navigate cursor around text area without leaving the cell
+                        shiftEnterSubmit: true,
+                        maskAutoFill: true,
+
+                    }
+                },
                 {
                     title: "ETA PIECES REF",
-                    field: "condition_pieces",
+                    field: "stats",
                     formatter: "star",
                     hozAlign: "center",
                     width: 100,
                     editor: true
                 },
+
                 {
                     title: "Date de sortie du garage",
-                    field: "garage_leave",
-                    editor: dateEditor,
-                    width: 150,
+                    field: "leave",
+                    editor: "date",
+                    editorParams: {
+                        min: "01/01/2020", // the minimum allowed value for the date picker
+                        max: "31/12/2024",
+                        format: "dd/MM/yyyy",
+                        verticalNavigation: "table",
+                        sorter: "date",
+                        hozAlign: "center"
+                    },
+                    width: 125,
                     sorter: "date",
                     hozAlign: "center"
                 },
                 {
                     title: "Date prévisionnelle de sortie garage",
-                    field: "garage_exit",
-                    editor: dateEditor,
-                    width: 150,
+                    field: "exit",
                     sorter: "date",
+                    editor: "date",
+                    editorParams: {
+                        min: "01/01/2020", // the minimum allowed value for the date picker
+                        max: "31/12/2024", // the maximum allowed value for the date picker
+                        format: "dd/MM/yyyy", // the format of the date value stored in the cell
+                        verticalNavigation: "table", //navigate cursor around table without changing the value
+                        elementAttributes: {
+                            title: "slide bar to choose option" // custom tooltip
+                        }
+                    },
+                    width: 125,
                     hozAlign: "center"
                 },
                 {
@@ -420,29 +464,33 @@
                     hozAlign: "center",
                     cellClick: function (e, cell) {
                         console.log(cell.getData().uid)
-                        let breakdownId = cell.getData().uid;
+                        if (confirm("Est-vous sûr de vouloir supprimer ceci ?")) {
 
-                        fetch("{% url 'apps:delete_breakdown' %}", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/x-www-form-urlencoded",
-                                "X-CSRFToken": "{{ csrf_token }}"
-                            },
-                            body: "breakdown_id=" + breakdownId
-                        })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    console.log("Breakdown deleted successfully");
-                                    table.deleteRow(cell.getRow());
-                                } else {
-                                    console.error("Error deleting Breakdown:", data.error);
-                                }
-                            })
-                            .catch(error => {
-                                console.error("Error deleting Breakdown:", error);
-                            });
-                        table.deleteRow(cell.getRow());
+                            let breakdownId = cell.getData().uid;
+                            if (breakdownId) {
+                                fetch("{% url 'apps:delete_breakdown' %}", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/x-www-form-urlencoded",
+                                        "X-CSRFToken": "{{ csrf_token }}"
+                                    },
+                                    body: "breakdown_id=" + breakdownId
+                                })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            table.deleteRow(cell.getRow());
+                                        } else {
+                                            console.error("Error deleting Breakdown:", data.error);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error("Error deleting Breakdown:", error);
+                                    });
+                            }
+
+                            table.deleteRow(cell.getRow());
+                        }
                     }
                 }
             ],

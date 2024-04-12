@@ -1,4 +1,6 @@
 import json
+from datetime import datetime, date
+
 from django.utils.translation import gettext as _
 
 from django.contrib import messages
@@ -47,21 +49,78 @@ def get_breakdown(request, company):
         company_names = company.split(',')
         if len(company_names) > 0:
             breakdowns = Breakdown.objects.filter(company__name__in=company_names).annotate(
-                company_name=F('company__name'),
-                matriculate=F('machine__matriculate'),
-                model=F('machine__model'),
-                location_name=F('location__name'),
-                client_name=F('client__name')
+                company_name=F('company__name'),  # Renommer la clé 'company_name' en 'societe'
+                matriculate=F('machine__matriculate'),  # Renommer la clé 'matriculate' en 'immatriculation'
+                model=F('machine__model'),  # Renommer la clé 'model' en 'modele'
+                location_name=F('location__name'),  # Renommer la clé 'location_name' en 'nom_emplacement'
+                client_name=F('client__name')  # Renommer la clé 'client_name' en 'nom_client'
             ).values(
                 'uid', 'company_name', 'matriculate', 'model', 'location_name', 'client_name', 'start', 'end',
-                'appointment', 'enter', 'exit', 'order'
+                'appointment', 'enter', 'exit', 'order', 'leave', 'works'
             )
 
             breakdowns_list = list(breakdowns)
-            print(f"BREAKDOWN: {breakdowns_list}")
+            for breakdown in breakdowns_list:
+                for key, value in breakdown.items():
+                    if isinstance(value, datetime):
+                        breakdown[key] = value.strftime('%d/%m/%Y')
+                    elif isinstance(value, date):
+                        breakdown[key] = value.strftime('%d/%m/%Y')
         return JsonResponse(breakdowns_list, status=200, safe=False)
     else:
         return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
+
+
+def process_data(data, is_update=False):
+    matriculate = data.get('matriculate')
+    company_name = data.get('company_name')
+    try:
+        machine = Machine.objects.get(matriculate=matriculate)
+        model = data.get('model')
+        if model != '' and model:
+            machine.model = model
+            machine.save()
+        company = Company.objects.get(name=company_name)
+        if is_update:
+            breakdown = Breakdown.objects.get(uid__exact=data.get('uid'))
+        else:
+            breakdown, _ = Breakdown.objects.get_or_create(company=company, machine=machine)
+        for key, value in data.items():
+            key = (str(key).replace('_name', ''))
+            if key not in ['uid', 'company', 'location', 'client', 'matriculate', 'model']:
+                if key in ['start', 'end', 'enter', 'appointment', 'exit', 'leave'] and value is not None:
+                    try:
+                        value = datetime.strptime(value, '%d/%m/%Y')
+                    except ValueError:
+                        pass
+                setattr(breakdown, key, value)
+        breakdown.save()
+        return JsonResponse({'message': 'Données enregistrées avec succès.'}, status=201)  # 201: Created
+    except Machine.DoesNotExist:
+        return JsonResponse({'error': "Machine non trouvée."}, status=404)  # 404: Not Found
+    except Company.DoesNotExist:
+        return JsonResponse({'error': "Société non trouvée."}, status=404)
+    except Breakdown.DoesNotExist:
+        return JsonResponse({'error': "Breakdown non trouvé."}, status=404)
+    except Exception as e:
+        print('error', str(e))
+        return JsonResponse({'error': str(e)}, status=500)  # 500: Internal Server Error
+
+
+@csrf_exempt
+def update_line(request):
+    if request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        return process_data(data, is_update=True)
+    return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)  # 405: Method Not Allowed
+
+
+@csrf_exempt
+def post_line(request):
+    if request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        return process_data(data)
+    return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
 
 
 @csrf_exempt
@@ -129,29 +188,3 @@ def get_machines(request, company=None):
     for machine in machines_qs:
         machines.append({'label': machine.matriculate, 'value': machine.matriculate})
     return JsonResponse(machines, safe=False)
-
-
-@csrf_exempt
-def post_line(request):
-    if request.method == 'POST':
-        data = json.loads(request.body.decode('utf-8'))
-        matriculate = data.get('matriculate')
-        company_name = data.get('company_name')
-
-        try:
-            machine = Machine.objects.get(matriculate=matriculate)
-            company = Company.objects.get(name=company_name)
-            if Breakdown.objects.filter(machine=machine).exists():
-                return JsonResponse({'error': "L'immatriculation sélectionnée est déjà utilisée."},
-                                    status=409)  # 409: Conflict
-            Breakdown.objects.update_or_create(company=company, machine=machine)
-            return JsonResponse({'message': 'Données enregistrées avec succès.'}, status=201)  # 201: Created
-        except Machine.DoesNotExist:
-            return JsonResponse({'error': "Machine non trouvée."}, status=404)  # 404: Not Found
-        except Company.DoesNotExist:
-            return JsonResponse({'error': "Société non trouvée."}, status=404)
-        except Exception as e:
-            print('error', str(e))
-            return JsonResponse({'error': str(e)}, status=500)  # 500: Internal Server Error
-
-    return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)  # 405: Method Not Allowed

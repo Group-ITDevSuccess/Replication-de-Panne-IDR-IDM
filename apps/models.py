@@ -64,7 +64,9 @@ class Breakdown(BaseModel):
     appointment = models.DateField(blank=True, null=True, verbose_name='Request Appointment')
     enter = models.DateField(blank=True, null=True, verbose_name='Enter Garage')
     exit = models.DateField(blank=True, null=True, verbose_name='Exit Garage')
+    leave = models.DateField(blank=True, null=True, verbose_name='Leave Garage')
     order = models.IntegerField(null=True, blank=True, verbose_name='Order Repair')
+    works = models.TextField(blank=True, null=True, verbose_name='Work Request')
 
     def __str__(self):
         return f"{self.machine}"
