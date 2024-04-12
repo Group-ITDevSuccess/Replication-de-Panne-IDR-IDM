@@ -29,6 +29,13 @@
         let tableMachine = new DataTable('#tableMachine', {
             info: false,
             filter: false,
+            ajax: '{% url 'apps:get_all_machines' %}',
+            columns: [
+                {data: null, width: '5%'},
+                {data: 'matriculate'},
+                {data: 'model'},
+                {data: 'company'},
+            ],
             select: true,
             createdRow: function (row, data, dataIndex) {
                 tableMachine.rows().every(function (idx) {
@@ -205,7 +212,7 @@
             footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id='valid-rows' onClick="sendSelectedRows()"><i class='fas fa-save'></i></button>`,
             tooltipsHeader: true,
             rowHeader: {
-                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()" ><i class='fas fa-plus'></i></button>`,
+                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()" {% if get_machines_url == '' %}disabled{% endif %} ><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
                 resizable: false,
                 minWidth: 30,
@@ -295,7 +302,7 @@
                     editor: "list",
                     editorParams: {
                         sort: "asc",
-                        valuesURL: "",
+                        valuesURL: "{{ get_machines_url }}",
                         placeholderLoading: "Chargement...",
                         filterRemote: true,
                     },
@@ -310,6 +317,8 @@
                     title: "<code>*</code> Modèle / Remorque",
                     field: "model",
                     editor: "input",
+                    valuesLookup: true,  //lookup all unique values
+                    valuesLookupField: "matriculate",
                     validator: "required",
                     frozen: true,
                 },

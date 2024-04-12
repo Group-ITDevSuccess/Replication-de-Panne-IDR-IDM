@@ -22,9 +22,19 @@
         <form class="form-inline my-2 my-lg-0" method="post" action="{% url 'apps:index' %}">
             {% csrf_token %}
             {{ form.company }}
+            {% if form.errors %}
+                <div class="text-danger ml-2 mt-3">
+                    {% for field, error_list in form.errors.items %}
+                        {% for error in error_list %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            {% endif %}
             <button class="btn btn-outline-success my-2 my-sm-0" id="submitCompanyForm" type="submit"><i
                     class="fas fa-search"></i></button>
         </form>
+
 
         <div class="navbar-text d-flex my-2 my-lg-0">
             <a href="" class="btn btn-outline-danger ml-1 my-2 my-sm-0">Déconnecter</a>

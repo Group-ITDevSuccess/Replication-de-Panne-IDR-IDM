@@ -4,24 +4,15 @@ from apps.models import Machine, Company
 
 
 class SearchForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        super(SearchForm, self).__init__(*args, **kwargs)
-
-        # Dynamically populate the choices for the 'societe' field
-        custom_choices = []
-        custom_choices.extend(
-            (societe.name, societe.name) for societe in
-            Company.objects.all().order_by('name')
-        )
-
-        self.fields['company'] = forms.ChoiceField(
-            choices=custom_choices,
-            label='Société',
-            widget=forms.SelectMultiple(
-                attrs={'class': 'selectpicker mr-2', 'data-style': "btn-primary", 'multiple': True, "data-live-search": "true",
-                       "data-header": "Choisir un Societe...","title": "List des Societes", "data-size": "8"}),
-            required=True
-        )
+    company = forms.ModelMultipleChoiceField(
+        queryset=Company.objects.all().order_by('name'),
+        label='Société',
+        widget=forms.SelectMultiple(
+            attrs={'class': 'selectpicker mr-2', 'data-style': "btn-primary", 'multiple': True,
+                   "data-live-search": "true",
+                   "data-header": "Choisir un Societe...", "title": "List des Societes", "data-size": "8"}),
+        required=True
+    )
 
 
 class CompanyForm(forms.ModelForm):
