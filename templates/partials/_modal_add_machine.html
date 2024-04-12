@@ -13,9 +13,9 @@
                     <div class="form-row">
                         <div class="col">
                             <div class="form-group">
-                                <label for="{{ form_add_machine.company.id_for_label }}"
-                                       class="col-form-label">{{ form_add_machine.company.label }} <code>*</code></label>
-                                {{ form_add_machine.company }}
+                                <label for="{{ form_add_machine.model.id_for_label }}" class="col-form-label">{{ form_add_machine.model.label }}
+                            <code>*</code></label>
+                        {{ form_add_machine.model }}
                             </div>
                         </div>
                         <div class="col">
@@ -25,11 +25,6 @@
                                 {{ form_add_machine.matriculate }}
                             </div>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="{{ form_add_machine.model.id_for_label }}" class="col-form-label">{{ form_add_machine.model.label }}
-                            <code>*</code></label>
-                        {{ form_add_machine.model }}
                     </div>
                     <div class="form-group">
                         <label for="{{ form_add_machine.description.id_for_label }}"

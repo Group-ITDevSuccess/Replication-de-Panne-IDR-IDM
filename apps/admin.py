@@ -14,7 +14,7 @@ company_fieldsets = (
 
 machine_fieldsets = (
     (None, {
-        'fields': ('matriculate', 'model', 'description', 'company')
+        'fields': ('matriculate', 'model', 'description')
     }),
     ('Dates', {
         'fields': ('created_at', 'updated_at'),
@@ -44,7 +44,7 @@ client_fieldsets = (
 
 breakdown_fieldsets = (
     (None, {
-        'fields': ('company', 'machine', 'location', 'client', 'start', 'end', 'appointment', 'enter', 'exit', 'order')
+        'fields': ('machine', 'location', 'client', 'start', 'end', 'appointment', 'enter', 'exit', 'order')
     }),
     ('Dates', {
         'fields': ('created_at', 'updated_at'),

@@ -25,7 +25,6 @@ class Machine(BaseModel):
     matriculate = models.CharField(max_length=100, unique=True)
     model = models.CharField(max_length=150)
     description = models.TextField(blank=True)
-    company = models.ForeignKey('Company', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.matriculate
@@ -56,8 +55,8 @@ class Client(BaseModel):
 
 
 class Breakdown(BaseModel):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
-    machine = models.ManyToManyField('Machine', blank=True)
+    company = models.ForeignKey('Company', on_delete=models.CASCADE)
+    machine = models.ForeignKey('Machine', on_delete=models.CASCADE)
     location = models.ForeignKey('Location', on_delete=models.CASCADE, blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.CASCADE, blank=True, null=True)
     start = models.DateTimeField(blank=True, null=True, verbose_name='Start Breakdown')
@@ -67,6 +66,5 @@ class Breakdown(BaseModel):
     exit = models.DateField(blank=True, null=True, verbose_name='Exit Garage')
     order = models.IntegerField(null=True, blank=True, verbose_name='Order Repair')
 
-
     def __str__(self):
-        return f"{self.company}"
+        return f"{self.machine}"

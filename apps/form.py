@@ -32,7 +32,6 @@ class MachineForm(forms.ModelForm):
             'matriculate': 'Matricule',
             'model': 'Model',
             'description': 'Description',
-            'company': 'Société'
         }
         widgets = {
             'matriculate': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
@@ -40,8 +39,4 @@ class MachineForm(forms.ModelForm):
             'description': forms.Textarea(
                 attrs={'class': 'form-control', 'placeholder': 'Ici les informations supplementaires',
                        'required': False}),
-            'company': forms.Select(
-                attrs={'class': 'selectpicker', 'data-style': "btn-primary", "data-live-search": "true",
-                       "data-header": "Choisir un Societe...", "data-size": "8", 'data-width': "100%",
-                       'required': True})
         }

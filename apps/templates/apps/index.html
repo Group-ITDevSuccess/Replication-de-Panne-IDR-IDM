@@ -2,6 +2,17 @@
 {% block title %}Home{% endblock %}
 {% block content %}
     <main class="container-fluid mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    <strong>{{ message.tags|title }}!</strong> {{ message.message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+
+        {% endif %}
         <div class="mb-2">
             <button class="btn btn-secondary" id="download-xlsx"><i class="fas fa-file-excel"></i></button>
             <button class="btn btn-secondary" id="download-pdf"><i class="fas fa-file-pdf"></i></button>
@@ -29,12 +40,11 @@
         let tableMachine = new DataTable('#tableMachine', {
             info: false,
             filter: false,
-            ajax: '{% url 'apps:get_all_machines' %}',
+            ajax: '{% url 'apps:get_all_machines_in_table' %}',
             columns: [
                 {data: null, width: '5%'},
                 {data: 'matriculate'},
                 {data: 'model'},
-                {data: 'company'},
             ],
             select: true,
             createdRow: function (row, data, dataIndex) {
@@ -106,7 +116,7 @@
             let currentValue = cell.getValue();
 
             // Check if both matriculate and model fields are not empty
-            let canTick = cell.getRow().getData().matriculate && cell.getRow().getData().model;
+            let canTick = cell.getRow().getData().matriculate && cell.getRow().getData().company_name;
 
             // Set the checkbox state based on the current value and allowed state
             checkbox.checked = currentValue === true && canTick;
@@ -204,6 +214,7 @@
         }
 
         let table = new Tabulator("#pannes", {
+            ajaxURL: '{{ get_breakdown_url }}',
             ajaxContentType: "json",
             layout: "fitDataFill",
             printAsHtml: true,
@@ -212,7 +223,7 @@
             footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id='valid-rows' onClick="sendSelectedRows()"><i class='fas fa-save'></i></button>`,
             tooltipsHeader: true,
             rowHeader: {
-                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()" {% if get_machines_url == '' %}disabled{% endif %} ><i class='fas fa-plus'></i></button>`,
+                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()"><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
                 resizable: false,
                 minWidth: 30,
@@ -265,7 +276,7 @@
                             if (conf) {
                                 const rowData = cell.getRow().getData();
                                 console.log(rowData)
-                                fetch("", {
+                                fetch("{% url 'apps:post_line' %}", {
                                     method: "POST",
                                     headers: {
                                         "Content-Type": "application/json"
@@ -295,6 +306,21 @@
                     headerSort: false,
                 },
                 {
+                    title: "<code>*</code> Société",
+                    field: "company_name",
+                    editor: "list",
+                    valuesLookup: true,  //lookup all unique values
+                    valuesLookupField: "matriculate",
+                    validator: "required",
+                    frozen: true,
+                    editorParams: {
+                        sort: "asc",
+                        valuesURL: "{% url 'apps:get_all_companies' %}",
+                        placeholderLoading: "Chargement...",
+                        filterRemote: true,
+                    },
+                },
+                {
                     title: "<code>*</code> Immat ou N° série ",
                     field: "matriculate",
                     width: 150,
@@ -302,7 +328,7 @@
                     editor: "list",
                     editorParams: {
                         sort: "asc",
-                        valuesURL: "{{ get_machines_url }}",
+                        valuesURL: "{% if get_machines_url == '' %}{% url 'apps:get_all_matriculate' %}{% else %}{{ get_machines_url }}{% endif %}",
                         placeholderLoading: "Chargement...",
                         filterRemote: true,
                     },
@@ -313,13 +339,13 @@
                     headerPopup: headerPopupFormatter,
                     headerFilterFunc: "like",
                 },
+
                 {
-                    title: "<code>*</code> Modèle / Remorque",
+                    title: "Modèle / Remorque",
                     field: "model",
                     editor: "input",
                     valuesLookup: true,  //lookup all unique values
                     valuesLookupField: "matriculate",
-                    validator: "required",
                     frozen: true,
                 },
                 {
@@ -388,31 +414,34 @@
                     resizable: false,
                     hozAlign: "center",
                     cellClick: function (e, cell) {
+                        console.log(cell.getData().uid)
+                        let breakdownId = cell.getData().uid;
+
+                        fetch("{% url 'apps:delete_breakdown' %}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/x-www-form-urlencoded",
+                                "X-CSRFToken": "{{ csrf_token }}"
+                            },
+                            body: "breakdown_id=" + breakdownId
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    console.log("Breakdown deleted successfully");
+                                    table.deleteRow(cell.getRow());
+                                } else {
+                                    console.error("Error deleting Breakdown:", data.error);
+                                }
+                            })
+                            .catch(error => {
+                                console.error("Error deleting Breakdown:", error);
+                            });
                         table.deleteRow(cell.getRow());
                     }
                 }
             ],
         });
-        /*
-
-       const submitButton = document.getElementById('submitButtonNav');
-       const filtersSelect = document.getElementById('filtersSelect');
-       let data;
-       submitButton.addEventListener('click', function (event) {
-           event.preventDefault();
-
-           const selectedDepots = Array.from(filtersSelect.selectedOptions).map(option => option.value);
-           const selectedSociete = document.getElementById('id_societe').value;
-           data = {
-               societe: selectedSociete,
-               filters: selectedDepots
-           };
-
-           table.setData("", data, "POST")
-       });
-       document.getElementById('id_company').addEventListener('change', function () {
-           document.getElementById('submitCompanyForm').click();
-       });*/
 
         document.getElementById("download-xlsx").addEventListener("click", function () {
             table.download("xlsx", "data.xlsx", {sheetName: "My Data"});
