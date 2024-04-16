@@ -13,12 +13,169 @@
     <link rel="stylesheet" href="{% static 'dist/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/bootstrap-select.min.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/dataTables.dataTables.css' %}">
-    <link rel="stylesheet" href="{% static 'dist/css/buttons.dataTables.css' %}">
+    <link rel="stylesheet" href="{% static 'dist/css/codemirror.css' %}">
+    <link rel="stylesheet" href="{% static 'dist/css/monokai.css' %}">
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator.min.css' %}">
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_bootstrap4.min.css' %}">
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_bootstrap4.min.css' %}">
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
-    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
+    {#    <link rel="stylesheet" href="{% static 'style.css' %}">#}
+    <style>
+        *, body {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+            -moz-osx-font-smoothing: grayscale;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+
+        /* Variables */
+        :root {
+            --bg: #fff;
+            --text: #7288a2;
+            --gray: #4d5974;
+            --lightgray: #e5e5e5;
+            --blue: #03b5d2;
+        }
+
+
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            padding: 0;
+            margin: 0;
+        }
+
+        .hint-text {
+            float: left;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        /* Custom checkbox */
+        .custom-checkbox {
+            position: relative;
+        }
+
+        .custom-checkbox input[type="checkbox"] {
+            opacity: 0;
+            position: absolute;
+            margin: 5px 0 0 3px;
+            z-index: 9;
+        }
+
+        .custom-checkbox label:before {
+            width: 18px;
+            height: 18px;
+        }
+
+        .custom-checkbox label:before {
+            content: '';
+            margin-right: 10px;
+            display: inline-block;
+            vertical-align: text-top;
+            background: white;
+            border: 1px solid #bbb;
+            border-radius: 2px;
+            box-sizing: border-box;
+            z-index: 2;
+        }
+
+        .custom-checkbox input[type="checkbox"]:checked + label:after {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 3px;
+            width: 6px;
+            height: 11px;
+            border: solid #000;
+            border-width: 0 3px 3px 0;
+            z-index: 3;
+            transform: rotateZ(45deg);
+        }
+
+        .custom-checkbox input[type="checkbox"]:checked + label:before {
+            border-color: #03A9F4;
+            background: #03A9F4;
+        }
+
+        .custom-checkbox input[type="checkbox"]:checked + label:after {
+            border-color: #fff;
+        }
+
+        .custom-checkbox input[type="checkbox"]:disabled + label:before {
+            color: #b8b8b8;
+            cursor: auto;
+            box-shadow: none;
+            background: #ddd;
+        }
+
+
+        .modal .modal-header, .modal .modal-body, .modal .modal-footer {
+            padding: 20px 30px;
+        }
+
+        .modal .modal-content {
+            border-radius: 3px;
+            font-size: 14px;
+        }
+
+        .modal .modal-footer {
+            background: #ecf0f1;
+            border-radius: 0 0 3px 3px;
+        }
+
+        .modal .modal-title {
+            display: inline-block;
+        }
+
+        .modal .form-control {
+            border-radius: 2px;
+            box-shadow: none;
+            border-color: #dddddd;
+        }
+
+        .modal textarea.form-control {
+            resize: vertical;
+        }
+
+        .modal .btn {
+            border-radius: 2px;
+            min-width: 35px;
+        }
+
+        .modal form label {
+            font-weight: normal;
+        }
+
+        .tabulator-print-header, tabulator-print-footer {
+            text-align: center;
+        }
+
+        #container-map {
+            height: 500px;
+            min-width: 310px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .active-row {
+            background-color: #13cb13; /* Light green */
+            color: cornsilk;
+        }
+
+        .inactive-row {
+            background-color: #ba1c2c; /* Light red */
+            color: cornsilk;
+        }
+
+    </style>
     {% block style %}{% endblock %}
 </head>
 <body>
@@ -26,12 +183,14 @@
 {% block content %}{% endblock %}
 {% include 'partials/_modal_add_machine.html' %}
 {% include 'partials/_modal_list_machine.html' %}
+{% include 'partials/_modal_map.html' %}
 <script>
 
 </script>
 <script type="text/javascript" src="{% static 'dist/js/jquery.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/popper.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/bootstrap.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'dist/js/purify.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/dataTables.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/dataTables.buttons.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/buttons.dataTables.js' %}"></script>
@@ -40,10 +199,24 @@
 <script type="text/javascript" src="{% static 'dist/js/bootstrap-select.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.umd.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.plugin.autotable.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'summernote/summernote-bs4.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'dist/js/codemirror.js' %}"></script>
+<script type="text/javascript" src="{% static 'dist/js/xml.js' %}"></script>
+<script type="text/javascript" src="{% static 'dist/js/formatting.js' %}"></script>
+<script type="text/javascript" src="{% static 'dist/js/formatting.js' %}"></script>
+
+<script src="https://code.highcharts.com/maps/highmaps.js"></script>
+<script src="https://code.highcharts.com/maps/modules/tiledwebmap.js"></script>
+<script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/maps/modules/offline-exporting.js"></script>
+<script src="https://code.highcharts.com/maps/modules/accessibility.js"></script>
+
 <script>
     $(function () {
         $('#id_company').selectpicker();
     });
+
+
 </script>
 {% block script %}{% endblock %}
 </body>

@@ -6,6 +6,8 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     -moz-osx-font-smoothing: grayscale;
+    box-sizing: border-box;
+    font-size: 13px;
 }
 
 /* Variables */
@@ -17,11 +19,6 @@
     --blue: #03b5d2;
 }
 
-/* Global Styles */
-* {
-    box-sizing: border-box;
-    font-size: 13px;
-}
 
 *::before,
 *::after {
@@ -97,10 +94,6 @@ html, body {
     background: #ddd;
 }
 
-/* Modal styles */
-.modal .modal-dialog {
-    max-width: 400px;
-}
 
 .modal .modal-header, .modal .modal-body, .modal .modal-footer {
     padding: 20px 30px;

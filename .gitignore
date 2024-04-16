@@ -127,12 +127,12 @@ venv.bak/
 
 # mkdocs documentation
 /site
-
+.github/
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
+qodana.yaml
 # Pyre type checker
 .pyre/
 

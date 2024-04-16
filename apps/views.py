@@ -1,17 +1,29 @@
 import json
+import os.path
+import re
 from datetime import datetime, date
 
-from django.utils.translation import gettext as _
-
+from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from django.template.context_processors import media
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import F  # Importer F depuis django.db.models
+from django.db.models import F
 
 from apps.form import MachineForm, SearchForm
-from apps.models import Machine, Company, Breakdown
+from apps.models import Machine, Company, Breakdown, Localisation
+
+
+def extract_name(chaine):
+    matches = re.match(r'(.+) \((.+)\)', chaine)
+    if matches:
+        locality = matches.group(1)
+        commune = matches.group(2)
+        return locality, commune
+    else:
+        return None, None
 
 
 def index(request):
@@ -29,14 +41,12 @@ def index(request):
     context = {
         'form': form,
         'form_add_machine': MachineForm(),
-        'get_machines_url': '',
         'get_breakdown_url': ''
     }
 
     if companies:
         companies_str = ','.join(str(company) for company in companies)
         context['companies'] = companies_str
-        context['get_machines_url'] = reverse('apps:get_machines', kwargs={'company': companies_str})
         context['get_breakdown_url'] = reverse('apps:get_breakdown', kwargs={'company': companies_str})
 
     return render(request, 'apps/index.html', context)
@@ -52,10 +62,11 @@ def get_breakdown(request, company):
                 company_name=F('company__name'),  # Renommer la clé 'company_name' en 'societe'
                 matriculate=F('machine__matriculate'),  # Renommer la clé 'matriculate' en 'immatriculation'
                 model=F('machine__model'),  # Renommer la clé 'model' en 'modele'
-                location_name=F('location__name'),  # Renommer la clé 'location_name' en 'nom_emplacement'
+                localisation_name=F('localisation__locality'),
+                # Renommer la clé 'localisation_name' en 'nom_emplacement'
                 client_name=F('client__name')  # Renommer la clé 'client_name' en 'nom_client'
             ).values(
-                'uid', 'company_name', 'matriculate', 'model', 'location_name', 'client_name', 'start', 'end',
+                'uid', 'company_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start', 'end',
                 'appointment', 'enter', 'exit', 'order', 'leave', 'works'
             )
 
@@ -69,6 +80,15 @@ def get_breakdown(request, company):
         return JsonResponse(breakdowns_list, status=200, safe=False)
     else:
         return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
+
+
+@csrf_exempt
+def gat_all_localisation(request):
+    data = []
+    localisations = Localisation.objects.all().order_by('locality')
+    for localisation in localisations:
+        data.append({'label': localisation.locality, 'value': f"{localisation.locality} ({localisation.commune}) "})
+    return JsonResponse(data, status=200, safe=False)
 
 
 def process_data(data, is_update=False):
@@ -85,15 +105,26 @@ def process_data(data, is_update=False):
             breakdown = Breakdown.objects.get(uid__exact=data.get('uid'))
         else:
             breakdown, _ = Breakdown.objects.get_or_create(company=company, machine=machine)
+        print(data)
         for key, value in data.items():
             key = (str(key).replace('_name', ''))
-            if key not in ['uid', 'company', 'location', 'client', 'matriculate', 'model']:
+
+            if key not in ['uid', 'company', 'client', 'matriculate', 'model']:
                 if key in ['start', 'end', 'enter', 'appointment', 'exit', 'leave'] and value is not None:
                     try:
                         value = datetime.strptime(value, '%d/%m/%Y')
                     except ValueError:
                         pass
-                setattr(breakdown, key, value)
+                if key == 'localisation':
+                    locality, commune = extract_name(value)
+                    localisation = Localisation.objects.filter(locality=locality, commune=commune).first()
+                    if localisation:
+                        breakdown.localisation = localisation
+                    else:
+                        # Gérer le cas où la localisation n'est pas trouvée
+                        return JsonResponse({'error': 'Localisation non trouvée.'}, status=404)
+                else:
+                    setattr(breakdown, key, value)
         breakdown.save()
         return JsonResponse({'message': 'Données enregistrées avec succès.'}, status=201)  # 201: Created
     except Machine.DoesNotExist:
@@ -172,6 +203,55 @@ def get_all_machines_in_table(request):
 
 
 @csrf_exempt
+def get_all_breakdown(request):
+    breakdowns = Breakdown.objects.exclude(localisation__isnull=True)
+    company_data = {}  # Dictionnaire pour stocker les données par entreprise
+
+    for value in breakdowns:
+        data = {
+            'name': f"{value.machine.matriculate}",
+            'lat': float(value.localisation.longitude),
+            'lon': float(value.localisation.latitude)
+        }
+        if value.company.name not in company_data:
+            company_data[value.company.name] = {
+                'data': [data]
+            }
+        else:
+            company_data[value.company.name]['data'].append(data)
+
+    series = [
+        {
+            'type': 'tiledwebmap',
+            'name': 'Map Societe',
+            'provider': {
+                'type': 'OpenStreetMap'
+            },
+            'showInLegend': False
+        }
+    ]
+    company_colors = {
+        "ID Motors": 'url(https://www.highcharts.com/samples/graphics/museum.svg)',  # Red
+        "ID Rental": 'url(https://www.highcharts.com/samples/graphics/building.svg)',  # Blue
+    }
+    # Ajouter les données par entreprise au dictionnaire 'series'
+    for company_name, company_info in company_data.items():
+        company_series = {
+            'type': 'mappoint',
+            'name': company_name,
+            'marker': {
+                'symbol': company_colors.get(company_name, "#cccccc"),  # Use company-specific SVG
+                'width': 24,
+                'height': 24,
+            },
+            'data': company_info['data']
+        }
+        series.append(company_series)
+    print(series)
+    return JsonResponse(series, safe=False)
+
+
+@csrf_exempt
 def get_all_matriculate(request):
     datas = []
     machines_qs = Machine.objects.all()
@@ -181,7 +261,7 @@ def get_all_matriculate(request):
 
 
 @csrf_exempt
-def get_machines(request, company=None):
+def get_machines(request):
     machines = []
 
     machines_qs = Machine.objects.all()

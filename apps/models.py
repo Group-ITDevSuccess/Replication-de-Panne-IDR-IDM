@@ -30,34 +30,35 @@ class Machine(BaseModel):
         return self.matriculate
 
 
-class Location(BaseModel):
-    name = models.CharField(max_length=255)
-    details = models.JSONField()
-
-    def save(self, *args, **kwargs):
-        # Convertir le dictionnaire en chaîne JSON avant de sauvegarder
-        if isinstance(self.details, dict):
-            self.details = json.dumps(self.details)
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.name
-
-
 class Client(BaseModel):
     name = models.CharField(max_length=100, unique=True)
     email = models.EmailField()
     phone = models.CharField(max_length=25)
-    location = models.ForeignKey('Location', on_delete=models.CASCADE, blank=True)
+    localisation = models.ForeignKey('Localisation', on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return self.name
+
+
+class Localisation(BaseModel):
+    latitude = models.DecimalField(decimal_places=10, max_digits=20, null=True, blank=True)
+    longitude = models.DecimalField(decimal_places=10, max_digits=20, null=True, blank=True)
+    locality = models.CharField(max_length=100)
+    commune = models.CharField(max_length=100)
+    district = models.CharField(max_length=100)
+    region = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.locality}, {self.commune}, {self.district}"
+
+    class Meta:
+        ordering = ['commune', 'locality']
 
 
 class Breakdown(BaseModel):
     company = models.ForeignKey('Company', on_delete=models.CASCADE)
     machine = models.ForeignKey('Machine', on_delete=models.CASCADE)
-    location = models.ForeignKey('Location', on_delete=models.CASCADE, blank=True, null=True)
+    localisation = models.ForeignKey('Localisation', on_delete=models.CASCADE, blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.CASCADE, blank=True, null=True)
     start = models.DateTimeField(blank=True, null=True, verbose_name='Start Breakdown')
     end = models.DateTimeField(blank=True, null=True, verbose_name='End Breakdown')

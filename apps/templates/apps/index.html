@@ -25,6 +25,7 @@
                     data-target="#addCompanyModal"><i class="fas fa-plus-circle"></i></button>
         </div>
         <div id="pannes"></div>
+
     </main>
 {% endblock %}
 {% block script %}
@@ -33,9 +34,88 @@
     {#    Tabulator : https://tabulator.info/#}
     {#    https://tabulator.info/docs/6.2/data#}
     <script type="text/javascript">
+        function textareaPopup(cell, onRendered, success, cancel) {
+          // Create a unique modal ID
+          const modalId = `editCellModal-${cell.getData().uid}`;
+
+          // Create the modal HTML structure
+          const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+              <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="${modalId}Label">Ajout ou Modification</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <textarea id="cellValue" class="form-control"></textarea>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary" id="saveChanges">Sauvegarder</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          let textArea;
+
+          // Ensure DOM is ready before manipulating (consider using vanilla JavaScript alternatives if not using jQuery)
+          $(document).ready(function() {
+            // Append the modal HTML to the body
+            $('body').append(modalHtml);
+
+            // Get the newly created modal element
+            const modalElement = document.getElementById(modalId);
+
+            // Show the modal using Bootstrap's data attributes
+            $(modalElement).modal('show');
+
+            // Set the textarea value
+            textArea = document.getElementById("cellValue");
+            textArea.value = cell.getValue();
+
+            // Initialize Summernote on the textarea (consider using a different rich text editor if needed)
+            $(textArea).summernote({
+              placeholder: 'Enter text here...',
+              tabsize: 1,
+              height: 150,
+              codemirror: { // codemirror options
+                    theme: 'monokai'
+                },
+
+              disableResizeEditor: true, // Disable editor resize
+              disableDragAndDrop: true, // Disable drag and drop
+
+            });
+
+            // Save changes button click event handler
+            const saveChangesBtn = document.getElementById("saveChanges");
+            saveChangesBtn.addEventListener("click", () => {
+              const newValue = $(textArea).summernote('code');
+              success(newValue);
+              $(modalElement).modal('hide');
+            });
+
+            // Modal hide event listener - destroy Summernote and call cancel
+            $(modalElement).on('hide.bs.modal', () => {
+              $(textArea).summernote('destroy');
+              cancel();
+
+              // Remove the modal from the DOM to prevent memory leaks
+              $(`#${modalId}`).remove();
+            });
+          });
+          return textArea;
+        }
+
         let iconDelete = function (cell, formatterParams) { //plain text value
             return "<i class='fa fa-trash-can'></i>";
         };
+
 
         let tableMachine = new DataTable('#tableMachine', {
             info: false,
@@ -159,7 +239,84 @@
             // No border by default
             return {};
         }
-    
+
+
+        function reloadPage() {
+            window.reload()
+        }
+
+        function formatDate(dateString) {
+            if (dateString && dateString.trim() !== '') { // Vérifiez si dateString est une chaîne non vide
+                const [day, month, year] = dateString.split('/');
+                // Si votre date est au format DD/MM/YYYY, vous pouvez la reformater en YYYY-MM-DD
+                return `${year}-${month}-${day}`;
+            }
+            return null; // Renvoyer null si la date est vide ou non valide
+        }
+
+        function calculImmo(cell) {
+            const rowData = cell.getRow().getData();
+
+
+            // Convertir la date dans le bon format
+            const formattedStartDate = formatDate(rowData.start);
+
+            if (formattedStartDate) {
+                const startDate = new Date(formattedStartDate);
+                if (isNaN(startDate.getTime())) {
+                    return "";
+                }
+
+                // Calculer la différence en jours
+                const today = new Date();
+                const diffInMs = today.getTime() - startDate.getTime();
+
+                return Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+            }
+            return ''
+
+        }
+
+        function calculImmoReel(cell) {
+            const rowData = cell.getRow().getData();
+
+            const formattedStartDate = formatDate(rowData.start);
+            const formattedEndDate = formatDate(rowData.leave);
+
+            if (formattedStartDate && formattedEndDate) {
+                const startDate = new Date(formattedStartDate);
+                const endDate = new Date(formattedEndDate);
+                if (isNaN(startDate.getTime())) {
+                    return "";
+                }
+                if (isNaN(endDate.getTime())) {
+                    return "";
+                }
+
+                const diffInMs = endDate.getTime() - startDate.getTime();
+
+                return Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
+            }
+            return ''
+
+        }
+
+        function stateLine(cell, formatterParams) {
+            let rowData = cell.getRow().getData();
+            let rowStart = rowData.start;
+            let rowLeave = rowData.leave;
+                
+            if (rowStart) {
+                if (rowLeave) {
+                    return 'Active';
+                } else {
+                    return 'Inactive';
+                }
+            } else {
+                return '';
+            }
+
+        }
 
         let table = new Tabulator("#pannes", {
             ajaxURL: '{{ get_breakdown_url }}',
@@ -168,8 +325,19 @@
             printAsHtml: true,
             printHeader: "<h1>Example Table Header<h1>",
             printFooter: "<h2>Example Table Footer<h2>",
-            footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id='valid-rows' onClick=""><i class='fas fa-save'></i></button><button type='button' class='btn btn-warning btn-sm mr-2' id='reload-table' onClick="window.reload()"><i class='fas fa-sync-alt'></i></button>`,
+            footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id="openModalBtn"><i class='fas fa-map-location'></i></button><button type='button' class='btn btn-warning btn-sm mr-2' id='reload-table' onClick="reloadPage()"><i class='fas fa-sync-alt'></i></button>`,
             tooltipsHeader: true,
+            rowFormatter: function (row) {
+                const rowData = row.getData();
+                const state = rowData.state;
+
+                // Apply CSS classes based on the state value
+                if (state === 'Active') {
+                    row.getElement().classList.add('active-row'); // Add 'active-row' class
+                } else if (state === 'Inactive') {
+                    row.getElement().classList.add('inactive-row'); // Add 'inactive-row' class
+                }
+            },
             rowHeader: {
                 title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()"><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
@@ -192,7 +360,6 @@
             selectableRangeRows: true,
             headerSortClickElement: 'icon',
             selectableRangeClearCells: true,
-            editTriggerEvent: "dblclick",
             pagination: "local",
             paginationSize: 10,
             paginationSizeSelector: [20, 30, 40],
@@ -201,6 +368,7 @@
             resizableColumnFit: true,
             resizableRowGuide: true,
             resizableColumnGuide: true,
+            editTriggerEvent: "dblclick",
             printRowRange: "selected",
             initialSort: [
                 {column: "matriculate", dir: "asc"},
@@ -286,14 +454,13 @@
                     field: "company_name",
                     editor: "list",
                     width: 100,
-                    {#valuesLookup: true,  //lookup all unique values#}
-                    {#valuesLookupField: "matriculate",#}
                     validator: "required",
                     frozen: true,
                     editorParams: {
                         sort: "asc",
                         valuesURL: "{% url 'apps:get_all_companies' %}",
                         placeholderLoading: "Chargement...",
+
                     },
                 },
                 {
@@ -302,12 +469,11 @@
                     width: 125,
                     frozen: true,
                     editor: "list",
-                    {#clearable: true,#}
                     editorParams: {
                         placeholderEmpty: "Aucun Matricule",
 
                         sort: "asc",
-                        valuesURL: "{% if get_machines_url == '' %}{% url 'apps:get_all_matriculate' %}{% else %}{{ get_machines_url }}{% endif %}",
+                        valuesURL: "{% url 'apps:get_all_matriculate' %}",
                         placeholderLoading: "Chargement...",
 
                     },
@@ -332,18 +498,32 @@
                 },
                 {
                     title: "Localisation",
-                    field: "location_name",
+                    field: "localisation_name",
                     editor: "list",
                     validator: "required",
                     editorParams: {
                         placeholderEmpty: "Aucun Localisation",
-                        autocomplete: "true", allowEmpty: true, listOnEmpty: true, valuesLookup: true,
-                        valuesURL: "",
+                        autocomplete: "true", allowEmpty: true, listOnEmpty: true,
+                        valuesURL: "{% url 'apps:gat_all_localisation' %}",
                         placeholderLoading: "Chargement...",
+
+                        formatter: function (value, data, cell) {
+                            if (value && value.label) {
+                                return value.label;  // Access and return the label from the value object
+                            } else {
+                                return "";
+                            }
+                        }
                     },
                 },
                 {
-                    title: "Début panne", field: "start", sorter: "date", width: 125, editor: "date", editorParams: {
+                    title: "Début panne",
+                    hozAlign: "right",
+                    field: "start",
+                    sorter: "date",
+                    width: 125,
+                    editor: "date",
+                    editorParams: {
                         min: "01/01/2020", // the minimum allowed value for the date picker
                         max: "31/12/2024", // the maximum allowed value for the date picker
                         format: "dd/MM/yyyy", // the format of the date value stored in the cell
@@ -359,6 +539,7 @@
                     sorter: "date",
                     width: 125,
                     editor: "date",
+                    hozAlign: "right",
                     editorParams: {
                         min: "01/01/2020", // the minimum allowed value for the date picker
                         max: "31/12/2024", // the maximum allowed value for the date picker
@@ -373,6 +554,7 @@
                     title: "Entrée garage",
                     field: "enter",
                     sorter: "date",
+                    hozAlign: "right",
                     width: 125,
                     editor: "date", editorParams: {
                         min: "01/01/2020", // the minimum allowed value for the date picker
@@ -383,6 +565,14 @@
                             title: "slide bar to choose option" // custom tooltip
                         }
                     }
+                },
+                {
+                    title: "Nb Jours Immo",
+                    width: 100,
+                    field: 'immo',
+                    editor: false,
+                    hozAlign: "right",
+                    formatter: calculImmo,
                 },
                 {
                     title: "N° OR (ordre de réparation)",
@@ -401,21 +591,37 @@
                         verticalNavigation: "table", //up and down arrow keys navigate away from cell without changing value
                     }
                 },
+
                 {
                     title: "DEMANDE DE TRAVAUX",
                     field: "works",
-                    editor: "textarea",
+                    editor: textareaPopup,
                     width: 250,
+                    formatter: function (cell, formatterParams) {
+                        // Get the value from the cell
+                        const value = cell.getValue();
+
+                        // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                        const cleanText = DOMPurify.sanitize(value);
+
+                        // Create a temporary element to remove HTML tags
+                        const tempElement = document.createElement('div');
+                        tempElement.textContent = cleanText;
+
+                        // Return the plain text content
+                        return tempElement.textContent;
+                    },
                     editorParams: {
                         selectContents: true,
-                        verticalNavigation: "editor", //navigate cursor around text area without leaving the cell
+                        verticalNavigation: "editor",
                         shiftEnterSubmit: true,
                         maskAutoFill: true,
 
-                    }
+                    },
+
                 },
                 {
-                    title: "ETA PIECES REF",
+                    title: "ETAT PIECES REF",
                     field: "stats",
                     formatter: "star",
                     hozAlign: "center",
@@ -439,6 +645,27 @@
                     sorter: "date",
                     hozAlign: "center"
                 },
+                {
+                    title: "Nb Jours Immo Réelle",
+                    width: 100,
+                    field: 'immo_reel',
+                    editor: false,
+                    hozAlign: "right",
+                    formatter: calculImmoReel,
+                },
+                {
+                    title: "Actif / Non Actif",
+                    width: 100,
+                    field: 'state',
+                    editor: false,
+                    hozAlign: "center",
+                    formatter: stateLine,
+                    formatterParams: { // Define properties for conditional formatting
+                        activeBackgroundColor: "#90EE90", // Light green
+                        inactiveBackgroundColor: "#FFCDD2" // Light red
+                    }
+                },
+
                 {
                     title: "Date prévisionnelle de sortie garage",
                     field: "exit",
@@ -528,9 +755,92 @@
             table.redo();
         });
 
+        document.addEventListener('DOMContentLoaded', function () {
+            // Gérer le clic sur le bouton pour ouvrir le modal
+            document.getElementById('openModalBtn').addEventListener('click', function () {
+                let myModal = new bootstrap.Modal(document.getElementById('chartModal'));
+                myModal.show();
+
+
+                fetch('{% url 'apps:get_all_breakdown' %}')
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data)
+                        Highcharts.mapChart('container-map', {
+                            chart: {
+                                margin: 0
+                            },
+
+                            title: {
+                                text: ''
+                            },
+
+                            subtitle: {
+                                text: ''
+                            },
+
+                            navigation: {
+                                buttonOptions: {
+                                    align: 'left',
+                                    theme: {
+                                        stroke: '#e6e6e6'
+                                    }
+                                }
+                            },
+
+                            mapNavigation: {
+                                enabled: true,
+                                buttonOptions: {
+                                    alignTo: 'spacingBox'
+                                }
+                            },
+
+                            mapView: {
+                                center: [46.3927, -18.6174],
+                                zoom: 7
+                            },
+
+                            tooltip: {
+                                pointFormat: '{point.name}'
+                            },
+
+                            legend: {
+                                enabled: true,
+                                title: {
+                                    text: 'Map Engin en Pane'
+                                },
+                                align: 'left',
+                                symbolWidth: 20,
+                                symbolHeight: 20,
+                                itemStyle: {
+                                    textOutline: '1 1 1px rgba(255,255,255)'
+                                },
+                                backgroundColor: 'rgba(255,255,255,0.8)',
+                                float: true,
+                                borderColor: '#e6e6e6',
+                                borderWidth: 1,
+                                borderRadius: 2,
+                                itemMarginBottom: 5
+                            },
+
+                            plotOptions: {
+                                mappoint: {
+                                    dataLabels: {
+                                        enabled: false
+                                    }
+                                }
+                            },
+                            series: data
+                        });
+                    })
+                    .catch(error => console.error('Erreur lors de la récupération des données :', error));
+            });
+        });
+
 
         window.addEventListener('resize', function () {
             table.redraw();
         });
+
     </script>
 {% endblock %}

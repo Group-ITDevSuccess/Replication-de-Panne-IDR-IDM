@@ -1,5 +1,26 @@
 from django.contrib import admin
-from .models import Company, Machine, Location, Client, Breakdown
+from import_export import resources, fields
+from import_export.admin import ImportExportModelAdmin
+
+from .models import Company, Machine, Client, Breakdown, Localisation
+
+
+class LocalisationResource(resources.ModelResource):
+    class Meta:
+        model = Localisation
+        fields = ('uid', 'latitude', 'longitude', 'locality', 'commune', 'district', 'region')
+        export_order = ('uid', 'latitude', 'longitude', 'locality', 'commune', 'district', 'region')
+        import_id_fields = ['uid']
+
+
+@admin.register(Localisation)
+class LocalisationAdmin(ImportExportModelAdmin):
+    resource_class = LocalisationResource
+    list_display = ('locality', 'commune', 'district', 'region')
+    list_display_links = ('locality', 'commune',)
+    search_fields = ('locality', 'commune', 'district', 'region')
+    list_filter = ('commune', 'district', 'region')
+
 
 # Custom fieldsets for each model
 company_fieldsets = (
@@ -22,7 +43,7 @@ machine_fieldsets = (
     }),
 )
 
-location_fieldsets = (
+localisation_fieldsets = (
     (None, {
         'fields': ('name', 'details')
     }),
@@ -34,7 +55,7 @@ location_fieldsets = (
 
 client_fieldsets = (
     (None, {
-        'fields': ('name', 'email', 'phone', 'location')
+        'fields': ('name', 'email', 'phone')
     }),
     ('Dates', {
         'fields': ('created_at', 'updated_at'),
@@ -59,15 +80,10 @@ class CompanyAdmin(admin.ModelAdmin):
     fieldsets = company_fieldsets
     readonly_fields = ('created_at', 'updated_at')
 
+
 @admin.register(Machine)
 class MachineAdmin(admin.ModelAdmin):
     fieldsets = machine_fieldsets
-    readonly_fields = ('created_at', 'updated_at')
-
-
-@admin.register(Location)
-class LocationAdmin(admin.ModelAdmin):
-    fieldsets = location_fieldsets
     readonly_fields = ('created_at', 'updated_at')
 
 
