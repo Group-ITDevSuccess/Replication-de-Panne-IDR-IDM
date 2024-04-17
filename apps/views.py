@@ -42,6 +42,7 @@ def index(request):
 
     context = {
         'form': form,
+        'path': request.path,
         'form_add_machine': MachineForm(),
         'get_breakdown_url': ''
     }
