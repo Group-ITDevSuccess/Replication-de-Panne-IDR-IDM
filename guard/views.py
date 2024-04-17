@@ -25,9 +25,8 @@ def index(request):
 def all_users_json(request):
     # Récupérer tous les utilisateurs, en excluant le champ 'uid' de 'CustomPermission'
     users = CustomUser.objects.all().values(
-        'username', 'first_name', 'last_name', 'autoriser', 'email', 'is_staff', 'is_superuser', 'date_joined'
+        'id', 'username', 'first_name', 'last_name', 'autoriser', 'email', 'is_staff', 'is_superuser', 'date_joined'
     )
-    print(list(users))
     return JsonResponse(list(users), safe=False)
 
 
