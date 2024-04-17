@@ -89,23 +89,36 @@
         document.addEventListener("DOMContentLoaded", function () {
             new FancyGrid({
                 renderTo: 'container',
-                title: 'Utilisateurs',
-                {#width: '100%',#}
-                height: 500,
+                title: {
+                    text: '<img src="{% static 'img/ID Motors.svg' %}" alt="ID Motors" style="height: 32px;position: relative;top: -4px;"> <span style="color:#bb162b;position: relative;font-size: 20px;left: 4px;"> | </span> <img src="{% static 'img/ID Rental.svg' %}" alt="ID Rental" style="height: 24px;position: relative;top: -4px;">',
+                    style: {
+                        height: 45
+                    }
+                },
+                width: 'fit',
+                height: 'fit',
                 theme: 'dark',
                 trackOver: true,
                 selModel: 'rows',
-                rowEdit: true,
+                {#rowEdit: true,#}
                 cellStylingCls: ['hidden-switcher'],
+                /*
+                data: {
+                    proxy: {
+                        type: 'rest',
+                        url: 'https://fancygrid.com/ajax/app.php/users'
+                    }
+                },*/
+
                 data: {
                     proxy: {
                         api: {
-                            create: '',
+                            create: '{% url 'guard:create_user_json' %}',
                             read: '{% url 'guard:get_all_users_json' %}',
                             update: '{% url 'guard:update_user_json' %}',
-                            destroy: ''
-                        }
-                    }
+                            destroy: '{% url 'guard:delete_user_json' %}'
+                        },
+                    },
                 },
                 defaults: {
                     type: 'string',
@@ -118,7 +131,7 @@
                     filter: {
                         header: true,
                         emptyText: 'Chercher...'
-                    }
+                    },
                 },
                 paging: true,
                 clicksToEdit: 1,
@@ -127,6 +140,7 @@
                         type: 'button',
                         text: 'Ajouter',
                         action: 'add',
+
                     },
                     {
                         type: 'button',
@@ -140,15 +154,22 @@
                         locked: true,
                     },
                     {
+                        index: 'id',
+                        locked: true,
+                        title: 'UID',
+                        width: 40,
+                        editable: false,
+                        resizable: true,
+                        filter: false
+                    },
+                    {
                         type: 'order',
                         title: 'N°',
-                        index: 'uid',
                     },
                     {
                         index: 'username',
                         title: 'Identifiant',
                         cellAlign: 'left',
-                        editable: false,
                         headerLImageCls: 'text',
                     },
                     {
@@ -170,6 +191,7 @@
                         cellAlign: 'right',
                         headerLImageCls: 'email',
                         width: 200,
+                        vtype: 'email'
                     },
                     {
                         index: 'autoriser',
@@ -205,6 +227,7 @@
                         index: 'date_joined',
                         headerLImageCls: 'date',
                         cellAlign: 'right',
+                        editable: false,
                         title: 'Connexion',
                     },
                     {
@@ -212,7 +235,6 @@
                         ellipsis: true,
                         title: 'Action',
                         rightLocked: true,
-                        cellAlign: 'center',
                         filter: false,
                         sortable: false,
                         items: [

@@ -137,20 +137,22 @@ def write_log(logs, level=None):
 
 
 def are_valid_uuids(values):
-    if isinstance(values, list):
-        uuids = []
+    if values is not None:
+        if isinstance(values, list):
+            uuids = []
 
-        for value in values:
+            for value in values:
+                try:
+                    uid = uuid.UUID(value)
+                    uuids.append(uid)
+                except ValueError:
+                    return None
+
+            return uuids
+        else:
             try:
-                uid = uuid.UUID(value)
-                uuids.append(uid)
+                uid = uuid.UUID(values)
+                return uid
             except ValueError:
                 return None
-
-        return uuids
-    else:
-        try:
-            uid = uuid.UUID(values)
-            return uid
-        except ValueError:
-            return None
+    return None
