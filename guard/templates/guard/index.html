@@ -5,36 +5,30 @@
     Administration
 {% endblock %}
 {% block style %}
-
+    <link rel="stylesheet" href="{% static 'fancygrid/fancy.min.css' %}">
 {% endblock %}
 {% block content %}
     <main class="container-fluid mt-4">
-        <div class="row">
-            <div class="col-sm-12 col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        Liste des Utilisateurs
-                    </div>
-                    <div class="card-body">
-                        <div id="container"></div>
-                    </div>
-                </div>
+        <div class="card">
+            <div class="card-header">
+                Liste des Utilisateurs
+            </div>
+            <div class="card-body">
+                <div id="container"></div>
             </div>
         </div>
-
-
     </main>
 {% endblock %}
 {% block script %}
-    <script src="{% static 'fancy/fancy.min.js' %}"></script>
+    <script src="{% static 'fancygrid/fancy.min.js' %}"></script>
     <script type="text/javascript">
         document.addEventListener("DOMContentLoaded", function () {
             new FancyGrid({
                 renderTo: 'container',
                 title: 'CRUD',
-                {#width: 700,#}
+                width: '100%',
                 height: 400,
-                theme: 'blue',
+                theme: 'bootstrap',
                 trackOver: true,
                 selModel: 'rows',
                 data: {
@@ -71,31 +65,40 @@
                     {
                         index: 'username',
                         locked: true,
+                        width: 150,
                         title: 'Identifiant'
                     },
                     {
                         index: 'first_name',
-                        title: 'Nom'
+                        title: 'Nom',
+                        width: 200,
                     },
                     {
                         index: 'last_name',
-                        title: 'Prénom'
+                        title: 'Prénom',
+                        width: 200,
+                    },
+                    {
+                        index: 'email',
+                        title: 'Email',
+                        width: 200,
+                        vtype: 'email'
                     },
                     {
                         index: 'autoriser',
-                        width: 60,
+                        width: 100,
                         title: 'Autoriser',
                         type: 'checkbox'
                     },
                     {
                         index: 'is_staff',
-                        width: 60,
+                        width: 100,
                         title: 'Staff',
                         type: 'checkbox'
                     },
                     {
                         index: 'is_superuser',
-                        width: 60,
+                        width: 100,
                         title: 'Super Utilisateur',
                         type: 'checkbox'
                     },
@@ -107,10 +110,10 @@
                     },
                     {
                         type: 'action',
-                        width: 65,
+                        {#locked: true,#}
                         items: [{
-                            text: 'Delete',
-                            cls: 'action-column-remove',
+                            text: '<i class="fas fa-trash"></i>',
+                            cls: 'action-column-remove d-flex align-item-center',
                             action: 'remove'
                         }]
                     }

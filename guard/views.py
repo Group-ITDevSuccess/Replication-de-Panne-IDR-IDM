@@ -27,7 +27,8 @@ def all_users_json(request):
     users = CustomUser.objects.all().values(
         'username', 'first_name', 'last_name', 'autoriser', 'email', 'is_staff', 'is_superuser', 'date_joined'
     )
-    return JsonResponse({'users': list(users)})
+    print(list(users))
+    return JsonResponse(list(users), safe=False)
 
 
 def is_user_not_authenticated(user):
