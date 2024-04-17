@@ -22,6 +22,7 @@ from django.views.static import serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('guard.urls')),
     path('i18n/', include('django.conf.urls.i18n')),
     path("select2/", include("django_select2.urls")),
     path('', include('apps.urls')),

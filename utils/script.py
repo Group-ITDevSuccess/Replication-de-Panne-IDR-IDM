@@ -5,7 +5,6 @@ import pyodbc
 import os
 import ldap3
 import logging
-import json
 
 from django.conf import settings
 from ldap3.core.exceptions import LDAPException
@@ -21,8 +20,6 @@ def check_base(server, name, value, username, password):
         value_input = f"Driver={{ODBC Driver 17 for SQL Server}};Server={server};Database={value};UID={username};" \
                       f"PWD={password}"
         conn = pyodbc.connect(value_input)
-        # conn.close()
-        # print(f"Connected in {name} in {value_input}")
     except pyodbc.Error as e:
         # Si une erreur se produit lors de la connexion, ajoutez le serveur à la liste des bases sans accès
         print("===============================")

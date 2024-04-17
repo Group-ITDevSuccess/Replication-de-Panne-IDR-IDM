@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'guard.apps.GuardConfig',
     'apps.apps.AppsConfig',
     'django_browser_reload',
 
@@ -179,11 +180,9 @@ else:
         },
     }
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = '/'
 SERVER_LDAP = 'ldap://ad-server-1'
 DN_LDAP = "dc=smtp-group,dc=mg"
 
 AUTH_USER_MODEL = 'guard.CustomUser'
-USE_THOUSAND_SEPARATOR = True

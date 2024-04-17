@@ -7,6 +7,7 @@ from datetime import datetime, date
 import pytz
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.template.context_processors import media
@@ -31,7 +32,7 @@ def extract_name(chaine):
     else:
         return None, None
 
-
+@login_required
 def index(request):
     companies = []
 
@@ -58,6 +59,7 @@ def index(request):
 
 
 @csrf_exempt
+@login_required
 def get_breakdown(request):
     if request.method == 'GET':
         breakdowns = Breakdown.objects.all().annotate(
@@ -93,6 +95,7 @@ def get_breakdown(request):
 
 
 @csrf_exempt
+@login_required
 def gat_all_localisation(request):
     data = []
     localisations = Localisation.objects.all().order_by('locality')
@@ -152,6 +155,7 @@ def process_data(data, is_update=False):
 
 
 @csrf_exempt
+@login_required
 def update_line(request):
     if request.method == 'POST':
         try:
@@ -163,6 +167,7 @@ def update_line(request):
 
 
 @csrf_exempt
+@login_required
 def update_line(request):
     if request.method == 'POST':
         data = json.loads(request.body.decode('utf-8'))
@@ -171,6 +176,7 @@ def update_line(request):
 
 
 @csrf_exempt
+@login_required
 def post_line(request):
     if request.method == 'POST':
         data = json.loads(request.body.decode('utf-8'))
@@ -179,6 +185,7 @@ def post_line(request):
 
 
 @csrf_exempt
+@login_required
 def delete_breakdown(request):
     if request.method == 'POST':
         breakdown_id = request.POST.get('breakdown_id')
@@ -191,7 +198,7 @@ def delete_breakdown(request):
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-
+@login_required
 def create_machine(request):
     if request.method == 'POST':
         form = MachineForm(request.POST)
@@ -201,7 +208,7 @@ def create_machine(request):
             messages.warning(request, "Formulaire Invalide !")
     return redirect('apps:index')
 
-
+@login_required
 def get_all_companies(request):
     companies = Company.objects.all()
     datas = []
@@ -209,7 +216,7 @@ def get_all_companies(request):
         datas.append({'label': companie.name, 'value': companie.name})
     return JsonResponse(datas, safe=False)
 
-
+@login_required
 def get_all_machines_in_table(request):
     machines_assigned = Breakdown.objects.values('machine__uid')
     machines = Machine.objects.exclude(uid__in=Subquery(machines_assigned))
@@ -228,6 +235,7 @@ def get_all_machines_in_table(request):
 
 
 @csrf_exempt
+@login_required
 def get_all_breakdown(request):
     breakdowns = Breakdown.objects.exclude(localisation__isnull=True)
     company_data = {}  # Dictionnaire pour stocker les données par entreprise
@@ -276,6 +284,7 @@ def get_all_breakdown(request):
 
 
 @csrf_exempt
+@login_required
 def get_all_matriculate(request):
     datas = []
     machines_assigned = Breakdown.objects.values('machine__uid')
@@ -288,6 +297,7 @@ def get_all_matriculate(request):
 
 
 @csrf_exempt
+@login_required
 def get_machines(request):
     machines = []
 

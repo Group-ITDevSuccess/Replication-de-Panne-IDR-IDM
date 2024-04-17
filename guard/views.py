@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate
 from django.views import View
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
@@ -18,7 +18,7 @@ def is_user_not_authenticated(user):
 
 class LoginLDAP(View):
     @staticmethod
-    @user_passes_test(is_user_not_authenticated, login_url='app:get')
+    @user_passes_test(is_user_not_authenticated, login_url='apps:index')
     def get(request):
         forms = LoginForm
         context = {
@@ -32,42 +32,49 @@ class LoginLDAP(View):
         if forms.is_valid():
             username = forms.cleaned_data['username']
             password = forms.cleaned_data['password']
+            if username not in ['admin.dev', 'user.dev']:
+                connexion = ldap_login_connection(username=username, password=password)
+                if connexion:
+                    try:
+                        user_get = CustomUser.objects.get(username__exact=username)
+                        if user_get.autoriser:
+                            login(request, user_get)
+                            return redirect('apps:index')
+                        else:
+                            messages.error(request,
+                                           "Vous n'êtes pas encore autorisé à vous connecter à la plateforme Sage !")
+                            return redirect('guard:login')
+                    except Exception as e:
+                        email = connexion.get('email', '')
+                        lastname = connexion.get('lastname', '')
+                        firstname = connexion.get('firstname', '')
+                        write_log(f"Erreur LoginLDAP : {str(e)}")
 
-            connexion = ldap_login_connection(username=username, password=password)
-            if connexion:
-                try:
-                    user_get = CustomUser.objects.get(username__exact=username)
-                    if user_get.autoriser:
-                        login(request, user_get)
-                        return redirect('app:get')
-                    else:
-                        messages.error(request,
-                                       "Vous n'êtes pas encore autorisé à vous connecter à la plateforme Sage !")
+                        user_get = CustomUser(
+                            username=username,
+                            last_name=lastname,
+                            first_name=firstname,
+                            email=email,
+                            autoriser=False,
+                            is_staff=False,
+                            is_superuser=False
+                        )
+                        user_get.save()
+                        messages.success(request,
+                                         "Votre compte a été créé. Contactez le service Sage ou DSI pour valider votre "
+                                         "accès !")
                         return redirect('guard:login')
-                except Exception as e:
-                    email = connexion.get('email', '')
-                    lastname = connexion.get('lastname', '')
-                    firstname = connexion.get('firstname', '')
-                    write_log(f"Erreur LoginLDAP : {str(e)}")
 
-                    user_get = CustomUser(
-                        username=username,
-                        last_name=lastname,
-                        first_name=firstname,
-                        email=email,
-                        autoriser=False,
-                        is_staff=False,
-                        is_superuser=False
-                    )
-                    user_get.save()
-                    messages.success(request,
-                                     "Votre compte a été créé. Contactez le service Sage ou DSI pour valider votre "
-                                     "accès !")
+                else:
+                    messages.error(request, "Login ou Mot de passe Incorrect !")
                     return redirect('guard:login')
-
             else:
-                messages.error(request, "Login ou Mot de passe Incorrect !")
-                return redirect('guard:login')
+                user = authenticate(request, username=username, password=password)
+                if user is not None:
+                    login(request, user)
+                    return redirect('apps:index')  # Redirect to dashboard or any desired URL
+                else:
+                    messages.error(request, "Nom d'utilisateur ou mot de passe incorrect.")
         else:
             messages.error(request, "Le formulaire de connexion est invalide !")
             return redirect('guard:login')
