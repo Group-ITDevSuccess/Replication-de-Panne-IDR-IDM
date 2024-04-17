@@ -1,7 +1,122 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}
-	Administration
+    Administration
+{% endblock %}
+{% block style %}
+
 {% endblock %}
 {% block content %}
-	
+    <main class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-sm-12 col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Liste des Utilisateurs
+                    </div>
+                    <div class="card-body">
+                        <div id="container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </main>
+{% endblock %}
+{% block script %}
+    <script src="{% static 'fancy/fancy.min.js' %}"></script>
+    <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", function () {
+            new FancyGrid({
+                renderTo: 'container',
+                title: 'CRUD',
+                {#width: 700,#}
+                height: 400,
+                theme: 'blue',
+                trackOver: true,
+                selModel: 'rows',
+                data: {
+                    proxy: {
+                        api: {
+                            create: '',
+                            read: '{% url 'guard:get_all_users_json' %}',
+                            update: '',
+                            destroy: ''
+                        }
+                    }
+                },
+                defaults: {
+                    type: 'string',
+                    width: 100,
+                    editable: true,
+                    sortable: true,
+                    resizable: true,
+                    ellipsis: true
+                },
+                paging: true,
+                clicksToEdit: 1,
+                tbar: [{
+                    type: 'button',
+                    text: 'Add',
+                    action: 'add',
+
+                }, {
+                    type: 'button',
+                    text: 'Delete',
+                    action: 'remove'
+                }],
+                columns: [
+                    {
+                        index: 'username',
+                        locked: true,
+                        title: 'Identifiant'
+                    },
+                    {
+                        index: 'first_name',
+                        title: 'Nom'
+                    },
+                    {
+                        index: 'last_name',
+                        title: 'Prénom'
+                    },
+                    {
+                        index: 'autoriser',
+                        width: 60,
+                        title: 'Autoriser',
+                        type: 'checkbox'
+                    },
+                    {
+                        index: 'is_staff',
+                        width: 60,
+                        title: 'Staff',
+                        type: 'checkbox'
+                    },
+                    {
+                        index: 'is_superuser',
+                        width: 60,
+                        title: 'Super Utilisateur',
+                        type: 'checkbox'
+                    },
+                    {
+                        index: 'date_joined',
+                        {#locked: true,#}
+                        title: 'Connexion',
+                        width: 150
+                    },
+                    {
+                        type: 'action',
+                        width: 65,
+                        items: [{
+                            text: 'Delete',
+                            cls: 'action-column-remove',
+                            action: 'remove'
+                        }]
+                    }
+
+                ]
+            });
+        });
+    </script>
 {% endblock %}

@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
+from django.http import JsonResponse
 from django.views import View
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
@@ -10,6 +11,23 @@ from .models import CustomUser
 
 # Create your views here.
 from django.contrib.auth.decorators import user_passes_test
+
+
+@login_required
+def index(request):
+    context = {
+        'path': request.path
+    }
+    return render(request, 'guard/index.html', context)
+
+
+@login_required
+def all_users_json(request):
+    # Récupérer tous les utilisateurs, en excluant le champ 'uid' de 'CustomPermission'
+    users = CustomUser.objects.all().values(
+        'username', 'first_name', 'last_name', 'autoriser', 'email', 'is_staff', 'is_superuser', 'date_joined'
+    )
+    return JsonResponse({'users': list(users)})
 
 
 def is_user_not_authenticated(user):
