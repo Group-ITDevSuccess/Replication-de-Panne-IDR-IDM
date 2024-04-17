@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+{% load i18n %}
+{% load humanize %}
 {% block title %}Home{% endblock %}
 {% block content %}
     <main class="container-fluid mt-4">
@@ -35,10 +37,8 @@
     {#    https://tabulator.info/docs/6.2/data#}
     <script type="text/javascript">
         function textareaPopup(cell, onRendered, success, cancel) {
-          // Create a unique modal ID
           const modalId = `editCellModal-${cell.getData().uid}`;
 
-          // Create the modal HTML structure
           const modalHtml = `
             <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
               <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
@@ -63,9 +63,6 @@
 
           let textArea;
 
-          // Ensure DOM is ready before manipulating (consider using vanilla JavaScript alternatives if not using jQuery)
-          $(document).ready(function() {
-            // Append the modal HTML to the body
             $('body').append(modalHtml);
 
             // Get the newly created modal element
@@ -81,7 +78,7 @@
             // Initialize Summernote on the textarea (consider using a different rich text editor if needed)
             $(textArea).summernote({
               placeholder: 'Enter text here...',
-              tabsize: 1,
+              tabsize: 0.5,
               height: 150,
               codemirror: { // codemirror options
                     theme: 'monokai'
@@ -100,7 +97,6 @@
               $(modalElement).modal('hide');
             });
 
-            // Modal hide event listener - destroy Summernote and call cancel
             $(modalElement).on('hide.bs.modal', () => {
               $(textArea).summernote('destroy');
               cancel();
@@ -108,8 +104,60 @@
               // Remove the modal from the DOM to prevent memory leaks
               $(`#${modalId}`).remove();
             });
-          });
           return textArea;
+        }
+
+        let minMaxFilterEditor = function (cell, onRendered, success, cancel, editorParams) {
+
+            let end;
+
+            let container = document.createElement("span");
+
+            //create and style inputs
+            let start = document.createElement("input");
+            start.setAttribute("type", "number");
+            start.setAttribute("placeholder", "Min");
+            start.setAttribute("min", 0);
+            start.setAttribute("max", 100);
+            start.style.padding = "4px";
+            start.style.width = "50%";
+            start.style.boxSizing = "border-box";
+
+            start.value = cell.getValue();
+
+            function buildValues() {
+                success({
+                    start: start.value,
+                    end: end.value,
+                });
+            }
+
+            function keypress(e) {
+                if (e.keyCode == 13) {
+                    buildValues();
+                }
+
+                if (e.keyCode == 27) {
+                    cancel();
+                }
+            }
+
+            end = start.cloneNode();
+            end.setAttribute("placeholder", "Max");
+
+            start.addEventListener("change", buildValues);
+            start.addEventListener("blur", buildValues);
+            start.addEventListener("keydown", keypress);
+
+            end.addEventListener("change", buildValues);
+            end.addEventListener("blur", buildValues);
+            end.addEventListener("keydown", keypress);
+
+
+            container.appendChild(start);
+            container.appendChild(end);
+
+            return container;
         }
 
         let iconDelete = function (cell, formatterParams) { //plain text value
@@ -144,7 +192,7 @@
             let currentValue = cell.getValue();
 
             // Check if both matriculate and model fields are not empty
-            let canTick = cell.getRow().getData().matriculate && cell.getRow().getData().company_name;
+            let canTick = cell.getRow().getData().matriculate;
 
             // Set the checkbox state based on the current value and allowed state
             checkbox.checked = currentValue === true && canTick;
@@ -257,8 +305,6 @@
         function calculImmo(cell) {
             const rowData = cell.getRow().getData();
 
-
-            // Convertir la date dans le bon format
             const formattedStartDate = formatDate(rowData.start);
 
             if (formattedStartDate) {
@@ -305,7 +351,7 @@
             let rowData = cell.getRow().getData();
             let rowStart = rowData.start;
             let rowLeave = rowData.leave;
-                
+
             if (rowStart) {
                 if (rowLeave) {
                     return 'Active';
@@ -319,7 +365,7 @@
         }
 
         let table = new Tabulator("#pannes", {
-            ajaxURL: '{{ get_breakdown_url }}',
+            ajaxURL: "{% url 'apps:get_breakdown' %}",
             ajaxContentType: "json",
             layout: "fitDataFill",
             printAsHtml: true,
@@ -329,13 +375,16 @@
             tooltipsHeader: true,
             rowFormatter: function (row) {
                 const rowData = row.getData();
-                const state = rowData.state;
+                const start = rowData.start;
+                const leave = rowData.leave;
 
-                // Apply CSS classes based on the state value
-                if (state === 'Active') {
-                    row.getElement().classList.add('active-row'); // Add 'active-row' class
-                } else if (state === 'Inactive') {
-                    row.getElement().classList.add('inactive-row'); // Add 'inactive-row' class
+                if (start) {
+                    if (leave) {
+                        row.getElement().style.backgroundColor = "#1e3b20"; // Add 'active-row' class
+
+                    } else {
+                        row.getElement().style.backgroundColor = "#3b1e2b"; //
+                    }
                 }
             },
             rowHeader: {
@@ -352,15 +401,15 @@
             movableRows: true,
             history: true,
             success: function (data) {
-                // Access breakdowns data from 'data' key (assuming the backend sends an object with a 'data' key)
                 const breakdowns = data.data;
-                table.setData(breakdowns);  // Set data to the table using setData method
+                table.setData(breakdowns);
             },
             selectableRangeColumns: true,
             selectableRangeRows: true,
             headerSortClickElement: 'icon',
             selectableRangeClearCells: true,
             pagination: "local",
+            columnHeaderVertAlign: "bottom",
             paginationSize: 10,
             paginationSizeSelector: [20, 30, 40],
             paginationCounter: "rows",
@@ -374,7 +423,7 @@
                 {column: "matriculate", dir: "asc"},
             ],
             placeholder: "Aucun Donnée",
-            placeholderHeaderFilter: 'Aucun Donnée Coorespondant',
+            placeholderHeaderFilter: 'Aucun Donnée Correspondent',
             headerSort: true,
             columnDefaults: {
                 tooltip: true,
@@ -397,7 +446,7 @@
                             let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
                             if (conf) {
                                 const rowData = cell.getRow().getData();
-                                console.log(table.getEditedCells())
+                                console.log(rowData)
                                 if (rowData.uid) {
                                     // Update existing breakdown using apps:update_line
                                     fetch("{% url 'apps:update_line' %}", {
@@ -450,153 +499,330 @@
                     headerSort: false,
                 },
                 {
-                    title: "<code>*</code> Société",
-                    field: "company_name",
-                    editor: "list",
-                    width: 100,
-                    validator: "required",
-                    frozen: true,
-                    editorParams: {
-                        sort: "asc",
-                        valuesURL: "{% url 'apps:get_all_companies' %}",
-                        placeholderLoading: "Chargement...",
+                    title: "ID Rental",
+                    columns: [
+                        {
+                            title: "<code>*</code> Immat ou N° série ",
+                            field: "matriculate",
+                            width: 125,
+                            frozen: true,
+                            editor: "list",
+                            editorParams: {
+                                placeholderEmpty: "Aucun Matricule",
+                                sort: "asc",
+                                valuesURL: "{% url 'apps:get_all_matriculate' %}",
+                                placeholderLoading: "Chargement...",
 
-                    },
-                },
-                {
-                    title: "<code>*</code> Immat ou N° série ",
-                    field: "matriculate",
-                    width: 125,
-                    frozen: true,
-                    editor: "list",
-                    editorParams: {
-                        placeholderEmpty: "Aucun Matricule",
+                            },
+                            headerPopupIcon: "<i class='fas fa-filter' title='Filter column'></i>",
+                            headerFilter: emptyHeaderFilter,
+                            headerPopup: headerPopupFormatter,
+                            headerFilterFunc: "like",
+                        },
+                        {
+                            title: "Modèle / Remorque",
+                            field: "model",
+                            editor: "input",
+                            frozen: true,
+                            width: 125,
+                        },
+                        {
+                            title: "CLIENT",
+                            field: "client_name",
+                            width: 150,
+                            editor: "input",
+                        },
+                        {
+                            title: "Localisation",
+                            field: "localisation_name",
+                            editor: "list",
+                            hozAlign: 'right',
+                            validator: "required",
+                            editorParams: {
+                                placeholderEmpty: "Aucun Localisation",
+                                autocomplete: "true", allowEmpty: true, listOnEmpty: true,
+                                valuesURL: "{% url 'apps:gat_all_localisation' %}",
+                                placeholderLoading: "Chargement...",
 
-                        sort: "asc",
-                        valuesURL: "{% url 'apps:get_all_matriculate' %}",
-                        placeholderLoading: "Chargement...",
-
-                    },
-                    headerPopupIcon: "<i class='fas fa-filter' title='Filter column'></i>",
-                    headerFilter: emptyHeaderFilter,
-                    headerPopup: headerPopupFormatter,
-                    headerFilterFunc: "like",
-                },
-
-                {
-                    title: "Modèle / Remorque",
-                    field: "model",
-                    editor: "input",
-                    frozen: true,
-                    width: 125,
-                },
-                {
-                    title: "NOM DU CLIENT",
-                    field: "client_name",
-                    width: 150,
-                    editor: "list",
-                },
-                {
-                    title: "Localisation",
-                    field: "localisation_name",
-                    editor: "list",
-                    validator: "required",
-                    editorParams: {
-                        placeholderEmpty: "Aucun Localisation",
-                        autocomplete: "true", allowEmpty: true, listOnEmpty: true,
-                        valuesURL: "{% url 'apps:gat_all_localisation' %}",
-                        placeholderLoading: "Chargement...",
-
-                        formatter: function (value, data, cell) {
-                            if (value && value.label) {
-                                return value.label;  // Access and return the label from the value object
-                            } else {
-                                return "";
+                                formatter: function (value, data, cell) {
+                                    if (value && value.label) {
+                                        return value.label;  // Access and return the label from the value object
+                                    } else {
+                                        return "";
+                                    }
+                                }
+                            },
+                        },
+                        {
+                            title: "Début panne",
+                            hozAlign: "right",
+                            field: "start",
+                            sorter: "datetime",
+                            width: 100,
+                            editor: "datetime",
+                             editorParams: {
+                                format: "dd/MM/yyyy HH:mm:ss",
+                                verticalNavigation: "table", 
                             }
-                        }
-                    },
-                },
-                {
-                    title: "Début panne",
-                    hozAlign: "right",
-                    field: "start",
-                    sorter: "date",
-                    width: 125,
-                    editor: "date",
-                    editorParams: {
-                        min: "01/01/2020", // the minimum allowed value for the date picker
-                        max: "31/12/2024", // the maximum allowed value for the date picker
-                        format: "dd/MM/yyyy", // the format of the date value stored in the cell
-                        verticalNavigation: "table", //navigate cursor around table without changing the value
-                        elementAttributes: {
-                            title: "slide bar to choose option" // custom tooltip
-                        }
-                    }
-                },
-                {
-                    title: "Demande rdv",
-                    field: "appointment",
-                    sorter: "date",
-                    width: 125,
-                    editor: "date",
-                    hozAlign: "right",
-                    editorParams: {
-                        min: "01/01/2020", // the minimum allowed value for the date picker
-                        max: "31/12/2024", // the maximum allowed value for the date picker
-                        format: "dd/MM/yyyy", // the format of the date value stored in the cell
-                        verticalNavigation: "table", //navigate cursor around table without changing the value
-                        elementAttributes: {
-                            title: "slide bar to choose option" // custom tooltip
-                        }
-                    }
-                },
-                {
-                    title: "Entrée garage",
-                    field: "enter",
-                    sorter: "date",
-                    hozAlign: "right",
-                    width: 125,
-                    editor: "date", editorParams: {
-                        min: "01/01/2020", // the minimum allowed value for the date picker
-                        max: "31/12/2024", // the maximum allowed value for the date picker
-                        format: "dd/MM/yyyy", // the format of the date value stored in the cell
-                        verticalNavigation: "table", //navigate cursor around table without changing the value
-                        elementAttributes: {
-                            title: "slide bar to choose option" // custom tooltip
-                        }
-                    }
+                        },
+                        {
+                            title: "Demande rdv",
+                            field: "appointment",
+                            sorter: "datetime",
+                            width: 100,
+                            editor: "datetime",
+                             editorParams: {
+                                format: "dd/MM/yyyy HH:mm:ss",
+                                verticalNavigation: "table", 
+                            }
+
+
+                        },
+                        {
+                            title: "Entrée garage",
+                            field: "enter",
+                            sorter: "datetime",
+                            width: 100,
+                            editor: "datetime",
+                            editorParams: {
+                                format: "dd/MM/yyyy HH:mm:ss",
+                                verticalNavigation: "table", 
+                            }
+                        },
+                        {
+                            title: "DEMANDE DE TRAVAUX",
+                            field: "works",
+                            editor: textareaPopup,
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+
+                            },
+                        },
+                        {
+                            title: "Date de sortie du garage",
+                            field: "leave",
+                            sorter: "datetime",
+                            width: 100,
+                            editor: "datetime",
+                            editorParams: {
+                                format: "dd/MM/yyyy HH:mm:ss", // the format of the date value stored in the cell
+                                verticalNavigation: "table", //navigate cursor around table without changing the value
+
+                            }
+                        },
+                        {
+                            title: "Km/H Entrée Garage",
+                            field: '',
+                            editor: false,
+                            width: 100
+                        },
+                        {
+                            title: "Km/H Sortie Garage",
+                            field: '',
+                            editor: false,
+                            width: 100
+                        },
+                    ]
                 },
                 {
                     title: "Nb Jours Immo",
                     width: 100,
-                    field: 'immo',
                     editor: false,
                     hozAlign: "right",
                     formatter: calculImmo,
                 },
                 {
-                    title: "N° OR (ordre de réparation)",
-                    hozAlign: "left",
-                    field: "order",
-                    width: 100,
-                    editor: "number",
-                    editorParams: {
-                        min: 0,
-                        max: 100,
-                        elementAttributes: {
-                            maxlength: "10", //set the maximum character length of the input element to 10 characters
+                    title: "SAV ID Motors",
+                    columns: [
+                        {
+                            title: "N° OR (ordre de réparation)",
+                            hozAlign: "right",
+                            field: "order",
+                            width: 100,
+                            editor: "number",
+                            editorParams: {
+                                min: 0,
+                                max: 100,
+                                elementAttributes: {
+                                    maxlength: "10", //set the maximum character length of the input element to 10 characters
+                                },
+                                mask: "999",
+                                selectContents: true,
+                                verticalNavigation: "table", //up and down arrow keys navigate away from cell without changing value
+                            }
                         },
-                        mask: "999",
-                        selectContents: true,
-                        verticalNavigation: "table", //up and down arrow keys navigate away from cell without changing value
+                        {
+                            title: "ETAT PIECES REF",
+                            field: "piece",
+                            editor: textareaPopup,
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                        },
+                        {
+                            title: 'DIAGNOSTICS/TRAVAUX EFFECTUER AUX ATELIER & COMMENTAIRES SAV',
+                            field: 'diagnostics',
+                            editor: textareaPopup,
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+                            },
+                        },
+                        {
+                            title: "Date prévisionnelle de sortie garage",
+                            field: "prevision",
+                            editor: textareaPopup,
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+                            },
+                        },
+                    ]
+                },
+                {
+                    title: "Achat et Import ID Motors",
+                    columns: [
+                        {
+                            title: 'COMMENTAIRES ACHATS',
+                            field: 'achats',
+                            editor: textareaPopup,
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+                            },
+                        },
+                        {
+                            title: 'COMMENTAIRES IMPORT',
+                            field: 'imports',
+                            editor: textareaPopup,
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+                            },
+                        },
+                    ]
+                },
+                {
+                    title: "Nb Jours Immo Réelle",
+                    width: 100,
+                    editor: false,
+                    hozAlign: "right",
+                    formatter: calculImmoReel,
+                },
+                {
+                    title: "Actif / Non Actif",
+                    width: 100,
+                    editor: false,
+                    hozAlign: "center",
+                    formatter: stateLine,
+                    formatterParams: { // Define properties for conditional formatting
+                        activeBackgroundColor: "#90EE90", // Light green
+                        inactiveBackgroundColor: "#FFCDD2" // Light red
                     }
                 },
-
                 {
-                    title: "DEMANDE DE TRAVAUX",
-                    field: "works",
+                    title: "DECISION",
+                    field: "decision",
                     editor: textareaPopup,
-                    width: 250,
+                    width: 200,
                     formatter: function (cell, formatterParams) {
                         // Get the value from the cell
                         const value = cell.getValue();
@@ -611,77 +837,6 @@
                         // Return the plain text content
                         return tempElement.textContent;
                     },
-                    editorParams: {
-                        selectContents: true,
-                        verticalNavigation: "editor",
-                        shiftEnterSubmit: true,
-                        maskAutoFill: true,
-
-                    },
-
-                },
-                {
-                    title: "ETAT PIECES REF",
-                    field: "stats",
-                    formatter: "star",
-                    hozAlign: "center",
-                    width: 100,
-                    editor: true
-                },
-
-                {
-                    title: "Date de sortie du garage",
-                    field: "leave",
-                    editor: "date",
-                    editorParams: {
-                        min: "01/01/2020", // the minimum allowed value for the date picker
-                        max: "31/12/2024",
-                        format: "dd/MM/yyyy",
-                        verticalNavigation: "table",
-                        sorter: "date",
-                        hozAlign: "center"
-                    },
-                    width: 125,
-                    sorter: "date",
-                    hozAlign: "center"
-                },
-                {
-                    title: "Nb Jours Immo Réelle",
-                    width: 100,
-                    field: 'immo_reel',
-                    editor: false,
-                    hozAlign: "right",
-                    formatter: calculImmoReel,
-                },
-                {
-                    title: "Actif / Non Actif",
-                    width: 100,
-                    field: 'state',
-                    editor: false,
-                    hozAlign: "center",
-                    formatter: stateLine,
-                    formatterParams: { // Define properties for conditional formatting
-                        activeBackgroundColor: "#90EE90", // Light green
-                        inactiveBackgroundColor: "#FFCDD2" // Light red
-                    }
-                },
-
-                {
-                    title: "Date prévisionnelle de sortie garage",
-                    field: "exit",
-                    sorter: "date",
-                    editor: "date",
-                    editorParams: {
-                        min: "01/01/2020", // the minimum allowed value for the date picker
-                        max: "31/12/2024", // the maximum allowed value for the date picker
-                        format: "dd/MM/yyyy", // the format of the date value stored in the cell
-                        verticalNavigation: "table", //navigate cursor around table without changing the value
-                        elementAttributes: {
-                            title: "slide bar to choose option" // custom tooltip
-                        }
-                    },
-                    width: 125,
-                    hozAlign: "center"
                 },
                 {
                     formatter: iconDelete,
@@ -691,10 +846,11 @@
                     hozAlign: "center",
                     cellClick: function (e, cell) {
                         console.log(cell.getData().uid)
-                        if (confirm("Est-vous sûr de vouloir supprimer ceci ?")) {
 
-                            let breakdownId = cell.getData().uid;
-                            if (breakdownId) {
+                        let breakdownId = cell.getData().uid;
+                        if (breakdownId) {
+                            if (confirm("Est-vous sûr de vouloir supprimer ceci ?")) {
+
                                 fetch("{% url 'apps:delete_breakdown' %}", {
                                     method: "POST",
                                     headers: {
@@ -707,6 +863,7 @@
                                     .then(data => {
                                         if (data.success) {
                                             table.deleteRow(cell.getRow());
+
                                         } else {
                                             console.error("Error deleting Breakdown:", data.error);
                                         }
@@ -716,6 +873,7 @@
                                     });
                             }
 
+                        } else {
                             table.deleteRow(cell.getRow());
                         }
                     }
@@ -756,87 +914,90 @@
         });
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Gérer le clic sur le bouton pour ouvrir le modal
-            document.getElementById('openModalBtn').addEventListener('click', function () {
-                let myModal = new bootstrap.Modal(document.getElementById('chartModal'));
-                myModal.show();
+            try {
+                document.getElementById('openModalBtn').addEventListener('click', function () {
+                    let myModal = new bootstrap.Modal(document.getElementById('chartModal'));
+                    myModal.show();
 
 
-                fetch('{% url 'apps:get_all_breakdown' %}')
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(data)
-                        Highcharts.mapChart('container-map', {
-                            chart: {
-                                margin: 0
-                            },
+                    fetch('{% url 'apps:get_all_breakdown' %}')
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log(data)
+                            Highcharts.mapChart('container-map', {
+                                chart: {
+                                    margin: 0
+                                },
 
-                            title: {
-                                text: ''
-                            },
-
-                            subtitle: {
-                                text: ''
-                            },
-
-                            navigation: {
-                                buttonOptions: {
-                                    align: 'left',
-                                    theme: {
-                                        stroke: '#e6e6e6'
-                                    }
-                                }
-                            },
-
-                            mapNavigation: {
-                                enabled: true,
-                                buttonOptions: {
-                                    alignTo: 'spacingBox'
-                                }
-                            },
-
-                            mapView: {
-                                center: [46.3927, -18.6174],
-                                zoom: 7
-                            },
-
-                            tooltip: {
-                                pointFormat: '{point.name}'
-                            },
-
-                            legend: {
-                                enabled: true,
                                 title: {
-                                    text: 'Map Engin en Pane'
+                                    text: ''
                                 },
-                                align: 'left',
-                                symbolWidth: 20,
-                                symbolHeight: 20,
-                                itemStyle: {
-                                    textOutline: '1 1 1px rgba(255,255,255)'
-                                },
-                                backgroundColor: 'rgba(255,255,255,0.8)',
-                                float: true,
-                                borderColor: '#e6e6e6',
-                                borderWidth: 1,
-                                borderRadius: 2,
-                                itemMarginBottom: 5
-                            },
 
-                            plotOptions: {
-                                mappoint: {
-                                    dataLabels: {
-                                        enabled: false
+                                subtitle: {
+                                    text: ''
+                                },
+
+                                navigation: {
+                                    buttonOptions: {
+                                        align: 'left',
+                                        theme: {
+                                            stroke: '#e6e6e6'
+                                        }
                                     }
-                                }
-                            },
-                            series: data
-                        });
-                    })
-                    .catch(error => console.error('Erreur lors de la récupération des données :', error));
-            });
-        });
+                                },
 
+                                mapNavigation: {
+                                    enabled: true,
+                                    buttonOptions: {
+                                        alignTo: 'spacingBox'
+                                    }
+                                },
+
+                                mapView: {
+                                    center: [46.3927, -18.6174],
+                                    zoom: 7
+                                },
+
+                                tooltip: {
+                                    pointFormat: '{point.name}'
+                                },
+
+                                legend: {
+                                    enabled: true,
+                                    title: {
+                                        text: 'Map Engin en Pane'
+                                    },
+                                    align: 'left',
+                                    symbolWidth: 20,
+                                    symbolHeight: 20,
+                                    itemStyle: {
+                                        textOutline: '1 1 1px rgba(255,255,255)'
+                                    },
+                                    backgroundColor: 'rgba(255,255,255,0.8)',
+                                    float: true,
+                                    borderColor: '#e6e6e6',
+                                    borderWidth: 1,
+                                    borderRadius: 2,
+                                    itemMarginBottom: 5
+                                },
+
+                                plotOptions: {
+                                    mappoint: {
+                                        dataLabels: {
+                                            enabled: false
+                                        }
+                                    }
+                                },
+                                series: data
+                            });
+                        })
+                        .catch(error => console.error('Erreur lors de la récupération des données :', error));
+                });
+            } catch (e) {
+
+            }
+
+        });
 
         window.addEventListener('resize', function () {
             table.redraw();

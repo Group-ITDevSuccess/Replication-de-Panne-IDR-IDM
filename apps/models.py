@@ -56,18 +56,21 @@ class Localisation(BaseModel):
 
 
 class Breakdown(BaseModel):
-    company = models.ForeignKey('Company', on_delete=models.CASCADE)
     machine = models.ForeignKey('Machine', on_delete=models.CASCADE)
     localisation = models.ForeignKey('Localisation', on_delete=models.CASCADE, blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.CASCADE, blank=True, null=True)
     start = models.DateTimeField(blank=True, null=True, verbose_name='Start Breakdown')
-    end = models.DateTimeField(blank=True, null=True, verbose_name='End Breakdown')
-    appointment = models.DateField(blank=True, null=True, verbose_name='Request Appointment')
-    enter = models.DateField(blank=True, null=True, verbose_name='Enter Garage')
-    exit = models.DateField(blank=True, null=True, verbose_name='Exit Garage')
-    leave = models.DateField(blank=True, null=True, verbose_name='Leave Garage')
+    appointment = models.DateTimeField(blank=True, null=True, verbose_name='Request Appointment')
+    enter = models.DateTimeField(blank=True, null=True, verbose_name='Enter Garage')
+    leave = models.DateTimeField(blank=True, null=True, verbose_name='Leave Garage')
     order = models.IntegerField(null=True, blank=True, verbose_name='Order Repair')
     works = models.TextField(blank=True, null=True, verbose_name='Work Request')
+    prevision = models.TextField(blank=True, null=True, verbose_name='Exit Garage Prevision')
+    piece = models.TextField(blank=True, null=True, verbose_name='Etat Piece')
+    decision = models.TextField(blank=True, null=True, verbose_name='Decision')
+    diagnostics = models.TextField(blank=True, null=True, verbose_name='Diagnostics & Commentaire SAV')
+    achats = models.TextField(blank=True, null=True, verbose_name='Commentaire Achats')
+    imports = models.TextField(blank=True, null=True, verbose_name='Commentaire Import')
 
     def __str__(self):
         return f"{self.machine}"

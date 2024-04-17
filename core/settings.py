@@ -30,13 +30,11 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'django_browser_reload',
+    'django.contrib.humanize',
     'import_export',
     'fontawesome_6',
     'admin_interface',
     'colorfield',
-
-    'django.contrib.humanize',
     'django.contrib.admin',
     'django_select2',
     'django.contrib.auth',
@@ -45,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'apps.apps.AppsConfig',
+    'django_browser_reload',
+
 ]
 
 X_FRAME_OPTIONS = "SAMEORIGIN"
@@ -131,7 +131,7 @@ LANGUAGE_CODE = 'fr-FR'
 TIME_ZONE = 'Indian/Antananarivo'
 
 USE_I18N = True
-USE_L10N = False
+USE_L10N = True
 USE_TZ = True
 
 DATE_FORMAT = "%d/%m/%Y"

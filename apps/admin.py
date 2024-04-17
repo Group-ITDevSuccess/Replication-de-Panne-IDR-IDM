@@ -65,7 +65,9 @@ client_fieldsets = (
 
 breakdown_fieldsets = (
     (None, {
-        'fields': ('machine', 'location', 'client', 'start', 'end', 'appointment', 'enter', 'exit', 'order')
+        'fields': (
+        'machine', 'location', 'client', 'start', 'appointment', 'enter', 'order', 'prevision', 'piece', 'diagnostics',
+        'achats', 'imports', 'decision')
     }),
     ('Dates', {
         'fields': ('created_at', 'updated_at'),

@@ -1,5 +1,6 @@
 {% load static %}
 {% load i18n %}
+{% load humanize %}
 {% load fontawesome_6 %}
 <!doctype html>
 <html lang="fr">
@@ -15,12 +16,9 @@
     <link rel="stylesheet" href="{% static 'dist/css/dataTables.dataTables.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/codemirror.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/monokai.css' %}">
-    <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator.min.css' %}">
-    <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_bootstrap4.min.css' %}">
-    <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_bootstrap4.min.css' %}">
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
+
     <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
-    {#    <link rel="stylesheet" href="{% static 'style.css' %}">#}
     <style>
         *, body {
             font-family: 'Poppins', sans-serif;
@@ -31,6 +29,25 @@
             box-sizing: border-box;
             font-size: 13px;
         }
+
+
+        .tabulator .tabulator-header {
+            position: relative;
+            box-sizing: border-box;
+            width: 100%;
+            border-bottom: 1px solid #3FB449;
+            background-color: #222;
+            color: #fff;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            -moz-user-select: none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            -o-user-select: none;
+            outline: none;
+        }
+
 
         /* Variables */
         :root {
@@ -175,6 +192,13 @@
             color: cornsilk;
         }
 
+
+
+        .tabulator-row {
+            border-bottom: 1px solid #ddd; /* Add border to each row */
+        }
+
+
     </style>
     {% block style %}{% endblock %}
 </head>
@@ -204,6 +228,7 @@
 <script type="text/javascript" src="{% static 'dist/js/xml.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/formatting.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/formatting.js' %}"></script>
+<script type="text/javascript" src="{% static 'dist/js/moment.min.js' %}"></script>
 
 <script src="https://code.highcharts.com/maps/highmaps.js"></script>
 <script src="https://code.highcharts.com/maps/modules/tiledwebmap.js"></script>
