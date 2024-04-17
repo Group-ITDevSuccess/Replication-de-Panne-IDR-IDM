@@ -98,7 +98,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # <-- UPDATED line
-        'NAME': 'suive-panne-idr-idm',  # <-- UPDATED line
+        'NAME': 'suivie-panne-idr-idm',  # <-- UPDATED line
         'USER': 'root',  # <-- UPDATED line
         'PASSWORD': 'AllahSeul',  # <-- UPDATED line
         'HOST': '127.0.0.1',  # <-- UPDATED line

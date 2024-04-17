@@ -8,4 +8,5 @@ urlpatterns = [
     path('logout/', views.logout_ldap, name='logout'),
     path('administrations/', views.index, name='index'),
     path('administrations/get-all-users/', views.all_users_json, name='get_all_users_json'),
+    path('administrations/update-user/', views.update_user_json, name='update_user_json'),
 ]

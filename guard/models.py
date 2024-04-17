@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy
 
 
 class CustomUser(AbstractUser):
+    uid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     autoriser = models.BooleanField(
         default=False,
         help_text=gettext_lazy("Autoriser l'utilisateur à se connecter au plateforme.")

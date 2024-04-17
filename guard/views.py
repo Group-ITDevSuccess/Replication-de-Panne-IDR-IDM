@@ -25,9 +25,18 @@ def index(request):
 def all_users_json(request):
     # Récupérer tous les utilisateurs, en excluant le champ 'uid' de 'CustomPermission'
     users = CustomUser.objects.all().values(
-        'id', 'username', 'first_name', 'last_name', 'autoriser', 'email', 'is_staff', 'is_superuser', 'date_joined'
+        'uid', 'username', 'first_name', 'last_name', 'email', 'autoriser', 'is_active', 'is_staff', 'is_superuser',
+        'date_joined'
     )
-    return JsonResponse(list(users), safe=False)
+    data = list(users)
+    print(data)
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+def update_user_json(request):
+    print(f"On a : {request.GET}")
+    return JsonResponse([], safe=False)
 
 
 def is_user_not_authenticated(user):
