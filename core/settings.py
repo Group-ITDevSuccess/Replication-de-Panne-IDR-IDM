@@ -131,7 +131,7 @@ LANGUAGE_CODE = 'fr-FR'
 TIME_ZONE = 'Indian/Antananarivo'
 
 USE_I18N = True
-USE_L10N = True
+USE_L10N = False
 USE_TZ = True
 
 DATE_FORMAT = "%d/%m/%Y"
@@ -178,3 +178,12 @@ else:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGIN_REDIRECT_URL = '/'
+SERVER_LDAP = 'ldap://ad-server-1'
+DN_LDAP = "dc=smtp-group,dc=mg"
+
+AUTH_USER_MODEL = 'guard.CustomUser'
+USE_THOUSAND_SEPARATOR = True
