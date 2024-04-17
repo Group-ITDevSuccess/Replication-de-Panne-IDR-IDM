@@ -1,26 +1,20 @@
 import json
-import logging
-import os.path
 import re
+import pytz
+
 from datetime import datetime, date
 
-import pytz
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from django.template.context_processors import media
-from django.urls import reverse
 from django.utils import timezone
-from django.utils.timezone import make_aware
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Subquery
 
 from apps.form import MachineForm, SearchForm
 from apps.models import Machine, Company, Breakdown, Localisation
-
-logger = logging.getLogger(__name__)
+from utils.script import write_log
 
 
 def extract_name(chaine):
@@ -31,6 +25,7 @@ def extract_name(chaine):
         return locality, commune
     else:
         return None, None
+
 
 @login_required
 def index(request):
@@ -75,11 +70,9 @@ def get_breakdown(request):
 
         def format_value(value):
             if isinstance(value, datetime):
-                # print(f"Entrer : {value}")
                 if timezone.is_aware(value):  # Vérifie si l'objet datetime est déjà conscient du fuseau horaire
                     value = timezone.make_naive(value)  # Convertit l'objet datetime en objet datetime naïf
                 value = timezone.make_aware(value, timezone=pytz.timezone('Indian/Antananarivo'))
-                # print(f"Sortie : {value.strftime('%d/%m/%Y %H:%M:%S')}")
                 return value.strftime('%d/%m/%Y %H:%M:%S')  # Format français date et heure
             elif isinstance(value, date):
                 if timezone.is_aware(value):  # Vérifie si l'objet date est déjà conscient du fuseau horaire
@@ -135,22 +128,21 @@ def process_data(data, is_update=False):
                     if localisation:
                         breakdown.localisation = localisation
                     else:
-                        logger.error('Localisation non trouvée.')
-                        # return JsonResponse({'error': 'Localisation non trouvée.'}, status=404)
+                        write_log('Localisation non trouvée.')
                 else:
                     setattr(breakdown, key, value)
 
         breakdown.save()
-        logger.info('Enregistrement terminé !')
+        write_log('Enregistrement terminé !')
         return JsonResponse({'message': 'Données enregistrées avec succès.'}, status=201)
     except Machine.DoesNotExist:
-        logger.error('Machine introuvable.')
+        write_log('Machine introuvable.')
         return JsonResponse({'error': "Machine non trouvée."}, status=404)
     except Breakdown.DoesNotExist:
-        logger.error('Breakdown introuvable.')
+        write_log('Breakdown introuvable.')
         return JsonResponse({'error': "Breakdown non trouvé."}, status=404)
     except Exception as e:
-        logger.exception('Erreur inattendue.')
+        write_log('Erreur inattendue.')
         return JsonResponse({'error': str(e)}, status=500)
 
 
@@ -198,6 +190,7 @@ def delete_breakdown(request):
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+
 @login_required
 def create_machine(request):
     if request.method == 'POST':
@@ -208,6 +201,7 @@ def create_machine(request):
             messages.warning(request, "Formulaire Invalide !")
     return redirect('apps:index')
 
+
 @login_required
 def get_all_companies(request):
     companies = Company.objects.all()
@@ -215,6 +209,7 @@ def get_all_companies(request):
     for companie in companies:
         datas.append({'label': companie.name, 'value': companie.name})
     return JsonResponse(datas, safe=False)
+
 
 @login_required
 def get_all_machines_in_table(request):
@@ -237,8 +232,8 @@ def get_all_machines_in_table(request):
 @csrf_exempt
 @login_required
 def get_all_breakdown(request):
-    breakdowns = Breakdown.objects.exclude(localisation__isnull=True)
-    company_data = {}  # Dictionnaire pour stocker les données par entreprise
+    # breakdowns = Breakdown.objects.exclude(localisation__isnull=True)
+    # company_data = {}  # Dictionnaire pour stocker les données par entreprise
     series = []
     # for value in breakdowns:
     #     data = {
