@@ -11,6 +11,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.template.context_processors import media
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.timezone import make_aware
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Subquery
@@ -72,8 +73,16 @@ def get_breakdown(request):
 
         def format_value(value):
             if isinstance(value, datetime):
+                # print(f"Entrer : {value}")
+                if timezone.is_aware(value):  # Vérifie si l'objet datetime est déjà conscient du fuseau horaire
+                    value = timezone.make_naive(value)  # Convertit l'objet datetime en objet datetime naïf
+                value = timezone.make_aware(value, timezone=pytz.timezone('Indian/Antananarivo'))
+                # print(f"Sortie : {value.strftime('%d/%m/%Y %H:%M:%S')}")
                 return value.strftime('%d/%m/%Y %H:%M:%S')  # Format français date et heure
             elif isinstance(value, date):
+                if timezone.is_aware(value):  # Vérifie si l'objet date est déjà conscient du fuseau horaire
+                    value = timezone.make_naive(value)  # Convertit l'objet date en objet date naïf
+                value = timezone.make_aware(value, timezone=pytz.timezone('Indian/Antananarivo'))
                 return value.strftime('%d/%m/%Y')  # Format français date
             return value
 
@@ -111,13 +120,9 @@ def process_data(data, is_update=False):
             if key not in ['uid', 'client', 'matriculate', 'model']:
                 if key in ['start', 'end', 'enter', 'appointment', 'leave'] and value is not None:
                     try:
-                        # value = pytz.timezone('UTC').localize(value)
+                        value = datetime.strptime(value, '%d/%m/%Y %H:%M:%S')
 
-                        print(f"Debut : {value}")
-                        # value = value.strftime(%Y-%m-%d %H:%M:%S)
-                        value = datetime.strptime(value, '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
-                        print(f"Fin : {value}")
-                        # setattr(breakdown, key, value)
+                        setattr(breakdown, key, value)
                     except ValueError:
                         print(f"Erreur de conversion de date : {value}")
                         pass

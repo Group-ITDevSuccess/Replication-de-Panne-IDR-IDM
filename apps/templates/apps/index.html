@@ -37,75 +37,107 @@
     {#    https://tabulator.info/docs/6.2/data#}
     <script type="text/javascript">
         function textareaPopup(cell, onRendered, success, cancel) {
-          const modalId = `editCellModal-${cell.getData().uid}`;
+              const modalId = `editCellModal-${cell.getData().uid}`;
 
-          const modalHtml = `
-            <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
-              <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="${modalId}Label">Ajout ou Modification</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
-                  </div>
-                  <div class="modal-body">
-                    <textarea id="cellValue" class="form-control"></textarea>
-                  </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
-                    <button type="button" class="btn btn-primary" id="saveChanges">Sauvegarder</button>
+              const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+                  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="${modalId}Label">Ajout ou Modification</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                          <span aria-hidden="true">&times;</span>
+                        </button>
+                      </div>
+                      <div class="modal-body">
+                        <textarea id="cellValue" class="form-control"></textarea>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                        <button type="button" class="btn btn-primary" id="saveChanges">Sauvegarder</button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          `;
+              `;
 
-          let textArea;
+              let textArea;
 
-            $('body').append(modalHtml);
+                $('body').append(modalHtml);
 
-            // Get the newly created modal element
-            const modalElement = document.getElementById(modalId);
+                // Get the newly created modal element
+                const modalElement = document.getElementById(modalId);
 
-            // Show the modal using Bootstrap's data attributes
-            $(modalElement).modal('show');
+                // Show the modal using Bootstrap's data attributes
+                $(modalElement).modal('show');
 
-            // Set the textarea value
-            textArea = document.getElementById("cellValue");
-            textArea.value = cell.getValue();
+                // Set the textarea value
+                textArea = document.getElementById("cellValue");
+                textArea.value = cell.getValue();
 
-            // Initialize Summernote on the textarea (consider using a different rich text editor if needed)
-            $(textArea).summernote({
-              placeholder: 'Enter text here...',
-              tabsize: 0.5,
-              height: 150,
-              codemirror: { // codemirror options
-                    theme: 'monokai'
-                },
+                // Initialize Summernote on the textarea (consider using a different rich text editor if needed)
+                $(textArea).summernote({
+                  placeholder: 'Enter text here...',
+                  tabsize: 0.5,
+                  height: 150,
+                  codemirror: { // codemirror options
+                        theme: 'monokai'
+                    },
 
-              disableResizeEditor: true, // Disable editor resize
-              disableDragAndDrop: true, // Disable drag and drop
+                  disableResizeEditor: true, // Disable editor resize
+                  disableDragAndDrop: true, // Disable drag and drop
 
+                });
+
+                // Save changes button click event handler
+                const saveChangesBtn = document.getElementById("saveChanges");
+                saveChangesBtn.addEventListener("click", () => {
+                  const newValue = $(textArea).summernote('code');
+                  success(newValue);
+                  $(modalElement).modal('hide');
+                });
+
+                $(modalElement).on('hide.bs.modal', () => {
+                  $(textArea).summernote('destroy');
+                  cancel();
+
+                  // Remove the modal from the DOM to prevent memory leaks
+                  $(`#${modalId}`).remove();
+                });
+              return textArea;
+            }
+
+        let datetimeEditor = function (cell, onRendered, success, cancel, editorParams) {
+
+            let editor = document.createElement("input");
+
+            editor.setAttribute("type", "datetime");
+
+            //create and style input
+            editor.style.padding = "3px";
+            editor.style.width = "100%";
+            editor.style.boxSizing = "border-box";
+
+            //Set value of editor to the current value of the cell
+            editor.value = luxon.DateTime.fromFormat(cell.getValue(), "dd/MM/yyyy hh:mm").toFormat("yyyy-MM-dd hh:mm")
+
+            //set focus on the select box when the editor is selected (timeout allows for editor to be added to DOM)
+            onRendered(function () {
+                editor.focus();
+                editor.style.css = "100%";
             });
 
-            // Save changes button click event handler
-            const saveChangesBtn = document.getElementById("saveChanges");
-            saveChangesBtn.addEventListener("click", () => {
-              const newValue = $(textArea).summernote('code');
-              success(newValue);
-              $(modalElement).modal('hide');
-            });
+            //when the value has been set, trigger the cell to update
+            function successFunc() {
+                success(luxon.DateTime.fromFormat(cell.getValue(), "yyyy-MM-dd hh:mm").toFormat("dd/MM/yyyy hh:mm"));
+            }
 
-            $(modalElement).on('hide.bs.modal', () => {
-              $(textArea).summernote('destroy');
-              cancel();
+            editor.addEventListener("change", successFunc);
+            editor.addEventListener("blur", successFunc);
 
-              // Remove the modal from the DOM to prevent memory leaks
-              $(`#${modalId}`).remove();
-            });
-          return textArea;
-        }
+            //return the editor element
+            return editor;
+        };
 
         let minMaxFilterEditor = function (cell, onRendered, success, cancel, editorParams) {
 
@@ -253,7 +285,6 @@
                 let rowData = cell.getRow().getData();
                 return cell.getColumn().getField() === "tickCross" && rowData.tickCross === true;
             }).map(cell => cell.getRow().getData());
-            console.log(selectedRowsData)
             fetch("", {
                 method: "POST",
                 headers: {
@@ -290,21 +321,20 @@
 
 
         function reloadPage() {
-            window.reload()
+            window.location.reload();
         }
 
         function formatDate(dateString) {
-            if (dateString && dateString.trim() !== '') { // Vérifiez si dateString est une chaîne non vide
-                const [day, month, year] = dateString.split('/');
-                // Si votre date est au format DD/MM/YYYY, vous pouvez la reformater en YYYY-MM-DD
+            if (dateString && dateString.trim() !== '') {
+                dateString = dateString.split(' ')
+                const [day, month, year] = dateString[0].split('/');
                 return `${year}-${month}-${day}`;
             }
-            return null; // Renvoyer null si la date est vide ou non valide
+            return null;
         }
 
         function calculImmo(cell) {
             const rowData = cell.getRow().getData();
-
             const formattedStartDate = formatDate(rowData.start);
 
             if (formattedStartDate) {
@@ -313,14 +343,18 @@
                     return "";
                 }
 
-                // Calculer la différence en jours
-                const today = new Date();
+                let today;
+                if (rowData.leave) {
+                    today = new Date(formatDate(rowData.leave));
+                } else {
+                    today = new Date();
+                }
                 const diffInMs = today.getTime() - startDate.getTime();
+
 
                 return Math.floor(diffInMs / (1000 * 60 * 60 * 24));
             }
-            return ''
-
+            return '';
         }
 
         function calculImmoReel(cell) {
@@ -347,6 +381,17 @@
 
         }
 
+
+        function sanitizeHTML(value) {
+            const cleanText = DOMPurify.sanitize(value, {ALLOWED_TAGS: []});
+            const textWithoutTags = cleanText.replace(/<[^>]+>/g, '');
+            return textWithoutTags.trim();
+        }
+
+        let textareaAccessor = function (value, data, type, params, column) {
+            return sanitizeHTML(value);
+        }
+
         function stateLine(cell, formatterParams) {
             let rowData = cell.getRow().getData();
             let rowStart = rowData.start;
@@ -356,7 +401,7 @@
                 if (rowLeave) {
                     return 'Active';
                 } else {
-                    return 'Inactive';
+                    return 'Non Active';
                 }
             } else {
                 return '';
@@ -367,12 +412,30 @@
         let table = new Tabulator("#pannes", {
             ajaxURL: "{% url 'apps:get_breakdown' %}",
             ajaxContentType: "json",
-            layout: "fitDataFill",
+            rowHeight: 40,
+            resizableRows: true,
+            resizableRowGuide: true,
+            downloadConfig: {
+                columnHeaders: true, //do not include column headers in downloaded table
+
+                columnGroups: false, //do not include column groups in column headers for downloaded table
+                rowHeaders: false, //do not include row headers in downloaded table
+                rowGroups: false, //do not include row groups in downloaded table
+                columnCalcs: true, //do not include column calcs in downloaded table
+                dataTree: true, //do not include data tree in downloaded table
+            },
+            persistence: {
+                sort: true,
+                filter: false,
+                columns: true,
+            },
+            persistenceID: "pannePersistence",
+            layout: "fitData",
             printAsHtml: true,
             printHeader: "<h1>Example Table Header<h1>",
             printFooter: "<h2>Example Table Footer<h2>",
             footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id="openModalBtn"><i class='fas fa-map-location'></i></button><button type='button' class='btn btn-warning btn-sm mr-2' id='reload-table' onClick="reloadPage()"><i class='fas fa-sync-alt'></i></button>`,
-            tooltipsHeader: true,
+            tooltipsHeader: false,
             rowFormatter: function (row) {
                 const rowData = row.getData();
                 const start = rowData.start;
@@ -399,31 +462,25 @@
                 formatter: "handle",
             },
             movableRows: true,
+            movableColumns: true,
             history: true,
             success: function (data) {
                 const breakdowns = data.data;
                 table.setData(breakdowns);
             },
-            selectableRangeColumns: true,
-            selectableRangeRows: true,
             headerSortClickElement: 'icon',
             selectableRangeClearCells: true,
-            pagination: "local",
             columnHeaderVertAlign: "bottom",
-            paginationSize: 10,
-            paginationSizeSelector: [20, 30, 40],
-            paginationCounter: "rows",
+            height: "40vw",
             renderHorizontal: "virtual",
-            resizableColumnFit: true,
-            resizableRowGuide: true,
             resizableColumnGuide: true,
             editTriggerEvent: "dblclick",
-            printRowRange: "selected",
             initialSort: [
                 {column: "matriculate", dir: "asc"},
             ],
             placeholder: "Aucun Donnée",
             placeholderHeaderFilter: 'Aucun Donnée Correspondent',
+            groupClosedShowCalcs: true,
             headerSort: true,
             columnDefaults: {
                 tooltip: true,
@@ -438,6 +495,7 @@
                     resizable: false,
                     hozAlign: "center",
                     formatter: "tickCross",
+                    download: false,
                     editor: tickCrossEditor,
                     headerSort: false,
                     cellEdited: function (cell) {
@@ -446,9 +504,7 @@
                             let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
                             if (conf) {
                                 const rowData = cell.getRow().getData();
-                                console.log(rowData)
                                 if (rowData.uid) {
-                                    // Update existing breakdown using apps:update_line
                                     fetch("{% url 'apps:update_line' %}", {
                                         method: "POST",
                                         headers: {
@@ -491,21 +547,24 @@
                 {
                     title: "N°",
                     resizable: false,
+                    field: 'no',
                     formatter: "rownum",
                     hozAlign: "center",
                     width: 40,
+                    sorter: "number",
                     editor: false,
                     frozen: true,
+                    download: false,
                     headerSort: false,
+                    {#bottomCalc:"count",#}
                 },
                 {
                     title: "ID Rental",
                     columns: [
                         {
-                            title: "<code>*</code> Immat ou N° série ",
+                            title: "Immat ou N° série",
                             field: "matriculate",
-                            width: 125,
-                            frozen: true,
+                            width: 150,
                             editor: "list",
                             editorParams: {
                                 placeholderEmpty: "Aucun Matricule",
@@ -523,8 +582,7 @@
                             title: "Modèle / Remorque",
                             field: "model",
                             editor: "input",
-                            frozen: true,
-                            width: 125,
+                            width: 150,
                         },
                         {
                             title: "CLIENT",
@@ -560,9 +618,9 @@
                             sorter: "datetime",
                             width: 100,
                             editor: "datetime",
-                             editorParams: {
-                                format: "dd/MM/yyyy HH:mm:ss",
-                                verticalNavigation: "table", 
+                            editorParams: {
+                                format: "dd/MM/yyyy hh:mm:ss",
+                                verticalNavigation: "table",
                             }
                         },
                         {
@@ -571,9 +629,9 @@
                             sorter: "datetime",
                             width: 100,
                             editor: "datetime",
-                             editorParams: {
-                                format: "dd/MM/yyyy HH:mm:ss",
-                                verticalNavigation: "table", 
+                            editorParams: {
+                                format: "dd/MM/yyyy hh:mm:ss",
+                                verticalNavigation: "table",
                             }
 
 
@@ -585,8 +643,8 @@
                             width: 100,
                             editor: "datetime",
                             editorParams: {
-                                format: "dd/MM/yyyy HH:mm:ss",
-                                verticalNavigation: "table", 
+                                format: "dd/MM/yyyy hh:mm:ss",
+                                verticalNavigation: "table",
                             }
                         },
                         {
@@ -615,6 +673,7 @@
                                 maskAutoFill: true,
 
                             },
+                            accessorDownload: textareaAccessor
                         },
                         {
                             title: "Date de sortie du garage",
@@ -623,7 +682,7 @@
                             width: 100,
                             editor: "datetime",
                             editorParams: {
-                                format: "dd/MM/yyyy HH:mm:ss", // the format of the date value stored in the cell
+                                format: "dd/MM/yyyy hh:mm:ss", // the format of the date value stored in the cell
                                 verticalNavigation: "table", //navigate cursor around table without changing the value
 
                             }
@@ -632,13 +691,15 @@
                             title: "Km/H Entrée Garage",
                             field: '',
                             editor: false,
-                            width: 100
+                            width: 100,
+                            download: true
                         },
                         {
                             title: "Km/H Sortie Garage",
                             field: '',
                             editor: false,
-                            width: 100
+                            width: 100,
+                            download: true
                         },
                     ]
                 },
@@ -647,6 +708,7 @@
                     width: 100,
                     editor: false,
                     hozAlign: "right",
+                    download: true,
                     formatter: calculImmo,
                 },
                 {
@@ -673,6 +735,8 @@
                             title: "ETAT PIECES REF",
                             field: "piece",
                             editor: textareaPopup,
+                            accessorDownload: textareaAccessor,
+
                             width: 200,
                             formatter: function (cell, formatterParams) {
                                 // Get the value from the cell
@@ -693,6 +757,8 @@
                             title: 'DIAGNOSTICS/TRAVAUX EFFECTUER AUX ATELIER & COMMENTAIRES SAV',
                             field: 'diagnostics',
                             editor: textareaPopup,
+                            accessorDownload: textareaAccessor,
+
                             width: 200,
                             formatter: function (cell, formatterParams) {
                                 // Get the value from the cell
@@ -719,6 +785,8 @@
                             title: "Date prévisionnelle de sortie garage",
                             field: "prevision",
                             editor: textareaPopup,
+                            accessorDownload: textareaAccessor,
+
                             width: 200,
                             formatter: function (cell, formatterParams) {
                                 // Get the value from the cell
@@ -750,6 +818,8 @@
                             title: 'COMMENTAIRES ACHATS',
                             field: 'achats',
                             editor: textareaPopup,
+                            accessorDownload: textareaAccessor,
+
                             width: 200,
                             formatter: function (cell, formatterParams) {
                                 // Get the value from the cell
@@ -776,6 +846,8 @@
                             title: 'COMMENTAIRES IMPORT',
                             field: 'imports',
                             editor: textareaPopup,
+                            accessorDownload: textareaAccessor,
+
                             width: 200,
                             formatter: function (cell, formatterParams) {
                                 // Get the value from the cell
@@ -806,9 +878,11 @@
                     editor: false,
                     hozAlign: "right",
                     formatter: calculImmoReel,
+                    download: true,
                 },
                 {
                     title: "Actif / Non Actif",
+                    field: 'status',
                     width: 100,
                     editor: false,
                     hozAlign: "center",
@@ -816,12 +890,15 @@
                     formatterParams: { // Define properties for conditional formatting
                         activeBackgroundColor: "#90EE90", // Light green
                         inactiveBackgroundColor: "#FFCDD2" // Light red
-                    }
+                    },
+                    download: true,
                 },
                 {
                     title: "DECISION",
                     field: "decision",
                     editor: textareaPopup,
+                    accessorDownload: textareaAccessor,
+
                     width: 200,
                     formatter: function (cell, formatterParams) {
                         // Get the value from the cell
@@ -844,8 +921,8 @@
                     frozen: true,
                     resizable: false,
                     hozAlign: "center",
+                    download: false,
                     cellClick: function (e, cell) {
-                        console.log(cell.getData().uid)
 
                         let breakdownId = cell.getData().uid;
                         if (breakdownId) {
@@ -879,22 +956,81 @@
                     }
                 }
             ],
+            groupBy: function (rowData) {
+                let rowStart = rowData.start;
+                let rowLeave = rowData.leave;
+
+                let val;
+                if (rowStart) {
+                    if (rowLeave) {
+                        val = 'Active';
+                    } else {
+                        val = 'Non Active';
+                    }
+                } else {
+                    val = rowData.status;
+                }
+                return val || "Nouveaux";
+            },
+            groupHeader: function (value, count, data, group) {
+
+                return value + "<span style='color:#d00; margin-left:10px;'>(" + count + " machines)</span>";
+            },
         });
 
         document.getElementById("download-xlsx").addEventListener("click", function () {
-            table.download("xlsx", "data.xlsx", {sheetName: "My Data"});
-        });
+            console.log("Téléchargement en cours...");
 
+            table.download("xlsx", "panne " + new Date() + ".xlsx", {
+                sheetName: "Pannes",
+                sheetStyle: {
+                    columnWidth: {
+                        1: 20,
+                    },
+                    font: {
+                        name: 'Arial',
+                        size: 12,
+                        bold: true,
+                    },
+                    border: {
+                        top: {color: '#000', style: 'medium'}, // Top border for all cells
+                        bottom: {color: '#000', style: 'medium'}, // Bottom border for all cells
+                        left: {color: '#000', style: 'medium'}, // Left border for all cells
+                        right: {color: '#000', style: 'medium'}, // Right border for all cells
+                    },
+                    fill: {
+                        patternType: 'solid', // Set solid fill pattern
+                        fgColor: { // Background color
+                            argb: 'F2F2F2' // Set using ARGB color code (alternative to hex)
+                        }
+                    }
+                }
+            });
+        });
 
         document.getElementById("print-table").addEventListener("click", function () {
-            table.print(false, true);
+            const printData = table.getData(true, false); // Obtenez les données sans le format
+            printData.forEach(row => {
+                // Nettoyez le contenu HTML dans chaque ligne
+                Object.keys(row).forEach(key => {
+                    row[key] = sanitizeHTML(row[key]);
+                });
+            });
+            table.print(false, true, printData);
         });
 
-        //trigger download of data.pdf file
         document.getElementById("download-pdf").addEventListener("click", function () {
+            const pdfData = table.getData(true, false); // Obtenez les données sans le format
+            pdfData.forEach(row => {
+                // Nettoyez le contenu HTML dans chaque ligne
+                Object.keys(row).forEach(key => {
+                    row[key] = sanitizeHTML(row[key]);
+                });
+            });
             table.download("pdf", "data.pdf", {
-                orientation: "portrait", //set page orientation to portrait
-                title: "Example Report", //add title to report
+                orientation: "portrait", // Définir l'orientation de la page en portrait
+                title: "Rapport Exemple", // Ajouter un titre au rapport
+                data: pdfData // Passer les données nettoyées au téléchargement PDF
             });
         });
 
@@ -923,7 +1059,6 @@
                     fetch('{% url 'apps:get_all_breakdown' %}')
                         .then(response => response.json())
                         .then(data => {
-                            console.log(data)
                             Highcharts.mapChart('container-map', {
                                 chart: {
                                     margin: 0
@@ -993,15 +1128,14 @@
                         })
                         .catch(error => console.error('Erreur lors de la récupération des données :', error));
                 });
+                table.recalc();
+
             } catch (e) {
 
             }
 
         });
 
-        window.addEventListener('resize', function () {
-            table.redraw();
-        });
 
     </script>
 {% endblock %}
