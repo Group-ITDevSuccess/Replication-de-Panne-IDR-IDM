@@ -14,11 +14,7 @@
     <link rel="stylesheet" href="{% static 'dist/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/bootstrap-select.min.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/dataTables.dataTables.css' %}">
-    <link rel="stylesheet" href="{% static 'dist/css/codemirror.css' %}">
-    <link rel="stylesheet" href="{% static 'dist/css/monokai.css' %}">
-    <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
 
-    <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
     <style>
         *, body {
             font-family: 'Poppins', sans-serif;
@@ -52,8 +48,6 @@
             border: 1px solid #3FB449;
             color: #fff !important;
         }
-
-
 
 
         /* Variables */
@@ -209,11 +203,15 @@
     {% block style %}{% endblock %}
 </head>
 <body>
-{% include 'partials/_navbar.html' %}
+{% if user.is_authenticated %}
+    {% include 'partials/_navbar.html' %}
+{% endif %}
 {% block content %}{% endblock %}
+{% if user.is_authenticated %}
 {% include 'partials/_modal_add_machine.html' %}
 {% include 'partials/_modal_list_machine.html' %}
 {% include 'partials/_modal_map.html' %}
+{% endif %}
 <script>
 
 </script>
@@ -224,17 +222,9 @@
 <script type="text/javascript" src="{% static 'dist/js/dataTables.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/dataTables.buttons.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/buttons.dataTables.js' %}"></script>
-<script type="text/javascript" src="{% static 'tabulator/dist/js/tabulator.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'tabulator/dist/js/luxon.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/bootstrap-select.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.umd.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.plugin.autotable.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'tabulator/dist/js/xlsx.full.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'summernote/summernote-bs4.min.js' %}"></script>
-<script type="text/javascript" src="{% static 'dist/js/codemirror.js' %}"></script>
-<script type="text/javascript" src="{% static 'dist/js/xml.js' %}"></script>
-<script type="text/javascript" src="{% static 'dist/js/formatting.js' %}"></script>
-<script type="text/javascript" src="{% static 'dist/js/moment.min.js' %}"></script>
+
+
 
 <script src="https://code.highcharts.com/maps/highmaps.js"></script>
 <script src="https://code.highcharts.com/maps/modules/tiledwebmap.js"></script>

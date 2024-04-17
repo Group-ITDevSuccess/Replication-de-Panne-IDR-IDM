@@ -1,7 +1,16 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% load i18n %}
 {% load humanize %}
 {% block title %}Home{% endblock %}
+{% block style %}
+    <link rel="stylesheet" href="{% static 'dist/css/codemirror.css' %}">
+    <link rel="stylesheet" href="{% static 'dist/css/monokai.css' %}">
+    <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
+
+    <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
+{% endblock %}
 {% block content %}
     <main class="container-fluid mt-4">
         {% if messages %}
@@ -32,9 +41,16 @@
 {% endblock %}
 {% block script %}
 
-    {#    Note responsive : https://jsfiddle.net/3fLwej4u/#}
-    {#    Tabulator : https://tabulator.info/#}
-    {#    https://tabulator.info/docs/6.2/data#}
+    <script type="text/javascript" src="{% static 'tabulator/dist/js/tabulator.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'tabulator/dist/js/luxon.js' %}"></script>
+    <script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.umd.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.plugin.autotable.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'tabulator/dist/js/xlsx.full.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'summernote/summernote-bs4.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'dist/js/codemirror.js' %}"></script>
+    <script type="text/javascript" src="{% static 'dist/js/xml.js' %}"></script>
+    <script type="text/javascript" src="{% static 'dist/js/formatting.js' %}"></script>
+    <script type="text/javascript" src="{% static 'dist/js/moment.min.js' %}"></script>
     <script type="text/javascript">
         function textareaPopup(cell, onRendered, success, cancel) {
               const modalId = `editCellModal-${cell.getData().uid}`;
