@@ -33,13 +33,21 @@
             <button type="button" class="btn btn-outline-warning" data-toggle="modal"
                     data-target="#listMachineModal"><i class="fas fa-list-alt"></i></button>
             <button type="button" class="btn btn-warning" data-toggle="modal"
-                    data-target="#addCompanyModal" {% if not user.level_1 %}disabled{% endif %}><i class="fas fa-plus-circle"></i></button>
+                    data-target="#addCompanyModal" {% if not user.level_1 %}disabled{% endif %}><i
+                    class="fas fa-plus-circle"></i></button>
         </div>
         <div id="pannes"></div>
 
     </main>
 {% endblock %}
 {% block script %}
+
+
+    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/tiledwebmap.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/offline-exporting.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/accessibility.js"></script>
 
     <script type="text/javascript" src="{% static 'tabulator/dist/js/tabulator.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'tabulator/dist/js/luxon.js' %}"></script>
@@ -433,7 +441,7 @@
             rowHeight: 40,
             resizableRows: true,
             resizableRowGuide: true,
-            editorEmptyValue:'',
+            editorEmptyValue: '',
             downloadConfig: {
                 columnHeaders: true, //do not include column headers in downloaded table
 
@@ -451,8 +459,8 @@
             persistenceID: "pannePersistence",
             layout: "fitData",
             printAsHtml: true,
-            printStyled:true,
-            printRowRange:"all",
+            printStyled: true,
+            printRowRange: "all",
             printHeader: "<h1>Example Table Header<h1>",
             printFooter: "<h2>Example Table Footer<h2>",
             footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id="openModalBtn"><i class='fas fa-map-location'></i></button><button type='button' class='btn btn-warning btn-sm mr-2' id='reload-table' onClick="reloadPage()"><i class='fas fa-sync-alt'></i></button>`,
@@ -472,7 +480,8 @@
                 }
             },
             rowHeader: {
-                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' {% if not user.level_1 %}disabled{% endif %} onclick="addRow()"><i class='fas fa-plus'></i></button>`,
+                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' {% if not user.level_1 %}
+                    disabled{% endif %} onclick="addRow()"><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
                 resizable: false,
                 minWidth: 30,
@@ -1053,31 +1062,31 @@
 
         // Assurez-vous d'inclure xlsx.full.min.js dans votre projet
 
-document.getElementById("download-xlsx").addEventListener("click", function () {
-    table.download("xlsx", "panne " + new Date() + ".xlsx", {
-        sheetName: "Pannes",
-        documentStyles: true, // Utilisez les styles de votre document pour la feuille Excel
-        columnStyles: [{ width: 100 }, { width: 200 }, { width: 150 }, { width: 150 }, { width: 100 }, { width: 100 }, { width: 100 }, { width: 100 }, { width: 100 }, { width: 200 }, { width: 100 }, { width: 200 }, { width: 200 }, { width: 200 }, { width: 100 }, { width: 100 }], // Définissez la largeur des colonnes
-        rowStyles: function (row) {
-            // Définissez les styles des lignes individuelles si nécessaire
-            return {
-                font: { bold: true }, // Par exemple, rend les lignes en gras
-            };
-        },
-        headerStyles: {
-            fill: {
-                fgColor: { rgb: "FF0000" }, // Couleur de fond pour les en-têtes
-            },
-            font: { color: { rgb: "FFFFFF" } }, // Couleur du texte pour les en-têtes
-            border: {
-                top: { style: "thin", color: { auto: 1 } }, // Bordure supérieure
-                bottom: { style: "thin", color: { auto: 1 } }, // Bordure inférieure
-                left: { style: "thin", color: { auto: 1 } }, // Bordure gauche
-                right: { style: "thin", color: { auto: 1 } }, // Bordure droite
-            },
-        },
-    });
-});
+        document.getElementById("download-xlsx").addEventListener("click", function () {
+            table.download("xlsx", "panne " + new Date() + ".xlsx", {
+                sheetName: "Pannes",
+                documentStyles: true, // Utilisez les styles de votre document pour la feuille Excel
+                columnStyles: [{width: 100}, {width: 200}, {width: 150}, {width: 150}, {width: 100}, {width: 100}, {width: 100}, {width: 100}, {width: 100}, {width: 200}, {width: 100}, {width: 200}, {width: 200}, {width: 200}, {width: 100}, {width: 100}], // Définissez la largeur des colonnes
+                rowStyles: function (row) {
+                    // Définissez les styles des lignes individuelles si nécessaire
+                    return {
+                        font: {bold: true}, // Par exemple, rend les lignes en gras
+                    };
+                },
+                headerStyles: {
+                    fill: {
+                        fgColor: {rgb: "FF0000"}, // Couleur de fond pour les en-têtes
+                    },
+                    font: {color: {rgb: "FFFFFF"}}, // Couleur du texte pour les en-têtes
+                    border: {
+                        top: {style: "thin", color: {auto: 1}}, // Bordure supérieure
+                        bottom: {style: "thin", color: {auto: 1}}, // Bordure inférieure
+                        left: {style: "thin", color: {auto: 1}}, // Bordure gauche
+                        right: {style: "thin", color: {auto: 1}}, // Bordure droite
+                    },
+                },
+            });
+        });
 
 
         document.getElementById("print-table").addEventListener("click", function () {
@@ -1090,8 +1099,6 @@ document.getElementById("download-xlsx").addEventListener("click", function () {
             });
             table.print(false, true, printData);
         });
-
-
 
 
         table.on("rowMoved", function (row) {
@@ -1114,78 +1121,112 @@ document.getElementById("download-xlsx").addEventListener("click", function () {
                     let myModal = new bootstrap.Modal(document.getElementById('chartModal'));
                     myModal.show();
 
-
-                    fetch('{% url 'apps:get_all_breakdown' %}')
-                        .then(response => response.json())
-                        .then(data => {
-                            Highcharts.mapChart('container-map', {
-                                chart: {
-                                    margin: 0
-                                },
-
-                                title: {
-                                    text: ''
-                                },
-
-                                subtitle: {
-                                    text: ''
-                                },
-
-                                navigation: {
-                                    buttonOptions: {
-                                        align: 'left',
-                                        theme: {
-                                            stroke: '#e6e6e6'
-                                        }
+                    function getAllData(urls) {
+                        return new Promise(function (resolve, reject) {
+                            let xhr = new XMLHttpRequest();
+                            xhr.open('GET', urls, true);  // Remplacez '/path/to/get_all_permission/' par l'URL réelle de votre vue Django
+                            xhr.onreadystatechange = function () {
+                                if (xhr.readyState === XMLHttpRequest.DONE) {
+                                    if (xhr.status === 200) {
+                                        let response = JSON.parse(xhr.responseText);
+                                        resolve(response);
+                                    } else {
+                                        reject(xhr.responseText);
                                     }
-                                },
+                                }
+                            };
+                            xhr.send();
+                        });
+                    }
 
-                                mapNavigation: {
-                                    enabled: true,
-                                    buttonOptions: {
-                                        alignTo: 'spacingBox'
-                                    }
-                                },
+                    getAllData('{% url 'apps:get_all_breakdown' %}').then(function (data) {
+                        let datas = JSON.parse(JSON.stringify(data))
 
-                                mapView: {
-                                    center: [46.3927, -18.6174],
-                                    zoom: 7
-                                },
+                        Highcharts.mapChart('container-map', {
+                            chart: {
+                                margin: 0
+                            },
 
-                                tooltip: {
-                                    pointFormat: '{point.name}'
-                                },
+                            title: {
+                                text: ''
+                            },
 
-                                legend: {
-                                    enabled: true,
-                                    title: {
-                                        text: 'Map Engin en Pane'
-                                    },
+                            subtitle: {
+                                text: ''
+                            },
+
+                            navigation: {
+                                buttonOptions: {
                                     align: 'left',
-                                    symbolWidth: 20,
-                                    symbolHeight: 20,
-                                    itemStyle: {
-                                        textOutline: '1 1 1px rgba(255,255,255)'
-                                    },
-                                    backgroundColor: 'rgba(255,255,255,0.8)',
-                                    float: true,
-                                    borderColor: '#e6e6e6',
-                                    borderWidth: 1,
-                                    borderRadius: 2,
-                                    itemMarginBottom: 5
-                                },
-
-                                plotOptions: {
-                                    mappoint: {
-                                        dataLabels: {
-                                            enabled: false
-                                        }
+                                    theme: {
+                                        stroke: '#e6e6e6'
                                     }
+                                }
+                            },
+
+                            mapNavigation: {
+                                enabled: true,
+                                buttonOptions: {
+                                    alignTo: 'spacingBox'
+                                }
+                            },
+
+                            mapView: {
+                                center: [46.3927, -18.6174],
+                                zoom: 7
+                            },
+
+                            tooltip: {
+                                pointFormat: '{point.name}'
+                            },
+
+                            legend: {
+                                enabled: true,
+                                title: {
+                                    text: 'Map Engin en Pane'
                                 },
-                                series: data
-                            });
-                        })
-                        .catch(error => console.error('Erreur lors de la récupération des données :', error));
+                                align: 'left',
+                                symbolWidth: 20,
+                                symbolHeight: 20,
+                                itemStyle: {
+                                    textOutline: '1 1 1px rgba(255,255,255)'
+                                },
+                                backgroundColor: 'rgba(255,255,255,0.8)',
+                                float: true,
+                                borderColor: '#e6e6e6',
+                                borderWidth: 1,
+                                borderRadius: 2,
+                                itemMarginBottom: 5
+                            },
+
+                            plotOptions: {
+                                mappoint: {
+                                    dataLabels: {
+                                        enabled: false
+                                    }
+                                }
+                            },
+                            series: [{
+                                type: 'tiledwebmap',
+                                name: 'Engin en panne',
+                                provider: {
+                                    type: 'OpenStreetMap'
+                                },
+                                showInLegend: false
+                            }, {
+                                type: 'mappoint',
+                                name: 'Panne',
+                                marker: {
+                                    symbol: 'url(https://www.highcharts.com/samples/graphics/museum.svg)',
+                                    width: 24,
+                                    height: 24
+                                },
+                                data: datas
+                            },]
+                        });
+                    }).catch(function (error) {
+                        console.error(error);
+                    });
                 });
 
             } catch (e) {

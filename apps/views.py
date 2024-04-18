@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Subquery
 
 from apps.form import MachineForm, SearchForm
-from apps.models import Machine, Company, Breakdown, Localisation
+from apps.models import Machine, Company, Breakdown, Localisation, Client
 from utils.script import write_log
 
 
@@ -68,6 +68,7 @@ def get_breakdown(request):
             'appointment', 'enter', 'order', 'leave', 'works', 'prevision', 'piece', 'diagnostics', 'achats', 'imports',
             'decision'
         )
+        print(breakdowns)
 
         def format_value(value):
             if isinstance(value, datetime):
@@ -133,6 +134,10 @@ def process_data(data, is_update=False):
                 else:
                     setattr(breakdown, key, value)
 
+                if key == 'client':
+                    print(value)
+                    client, _ = Client.objects.get_or_create(name__iexact=value)
+                    breakdown.client = client
         breakdown.save()
         write_log('Enregistrement terminé !')
         return JsonResponse({'message': 'Données enregistrées avec succès.'}, status=201)
@@ -233,50 +238,16 @@ def get_all_machines_in_table(request):
 @csrf_exempt
 @login_required
 def get_all_breakdown(request):
-    # breakdowns = Breakdown.objects.exclude(localisation__isnull=True)
-    # company_data = {}  # Dictionnaire pour stocker les données par entreprise
-    series = []
-    # for value in breakdowns:
-    #     data = {
-    #         'name': f"{value.machine.matriculate}",
-    #         'lat': float(value.localisation.longitude),
-    #         'lon': float(value.localisation.latitude)
-    #     }
-    #     if value.company.name not in company_data:
-    #         company_data[value.company.name] = {
-    #             'data': [data]
-    #         }
-    #     else:
-    #         company_data[value.company.name]['data'].append(data)
-    #
-    # series = [
-    #     {
-    #         'type': 'tiledwebmap',
-    #         'name': 'Map Societe',
-    #         'provider': {
-    #             'type': 'OpenStreetMap'
-    #         },
-    #         'showInLegend': False
-    #     }
-    # ]
-    # company_colors = {
-    #     "ID Motors": 'url(https://www.highcharts.com/samples/graphics/museum.svg)',  # Red
-    #     "ID Rental": 'url(https://www.highcharts.com/samples/graphics/building.svg)',  # Blue
-    # }
-    # # Ajouter les données par entreprise au dictionnaire 'series'
-    # for company_name, company_info in company_data.items():
-    #     company_series = {
-    #         'type': 'mappoint',
-    #         'name': company_name,
-    #         'marker': {
-    #             'symbol': company_colors.get(company_name, "#cccccc"),  # Use company-specific SVG
-    #             'width': 24,
-    #             'height': 24,
-    #         },
-    #         'data': company_info['data']
-    #     }
-    #     series.append(company_series)
-    return JsonResponse(series, safe=False)
+    breakdowns = Breakdown.objects.exclude(localisation__isnull=True)
+    data = []
+    for value in breakdowns:
+        data.append({
+            'name': f"{value.machine.matriculate}",
+            'lat': float(value.localisation.longitude),
+            'lon': float(value.localisation.latitude)
+        })
+    print(f"On a : {data}")
+    return JsonResponse(data, safe=False)
 
 
 @csrf_exempt

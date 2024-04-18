@@ -87,10 +87,10 @@
     {#    <script src="{% static 'fancygrid/fancy.min.js' %}"></script>#}
     <script type="text/javascript">
 
-        function getAllPermissions() {
+        function getAllData(urls) {
             return new Promise(function (resolve, reject) {
                 let xhr = new XMLHttpRequest();
-                xhr.open('GET', '{% url 'guard:get_all_permission' %}', true);  // Remplacez '/path/to/get_all_permission/' par l'URL réelle de votre vue Django
+                xhr.open('GET', urls, true);  // Remplacez '/path/to/get_all_permission/' par l'URL réelle de votre vue Django
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === XMLHttpRequest.DONE) {
                         if (xhr.status === 200) {
@@ -107,11 +107,11 @@
 
         document.addEventListener("DOMContentLoaded", function () {
 
-            getAllPermissions().then(function (data) {
+            getAllData('{% url 'guard:get_all_permission' %}').then(function (data) {
                 let dataPermission = JSON.parse(JSON.stringify(data))
                 new FancyGrid({
                     renderTo: 'container',
-                    i18n: 'fr',
+                    {#i18n: 'fr',#}
                     title: {
                         text: '<img src="{% static 'img/ID Motors.svg' %}" alt="ID Motors" style="height: 32px;position: relative;top: -4px;"> <span style="color:#bb162b;position: relative;font-size: 20px;left: 4px;"> | </span> <img src="{% static 'img/ID Rental.svg' %}" alt="ID Rental" style="height: 24px;position: relative;top: -4px;">',
                         style: {
