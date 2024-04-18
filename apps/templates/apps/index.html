@@ -7,6 +7,7 @@
 {% block style %}
     <link rel="stylesheet" href="{% static 'dist/css/codemirror.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/monokai.css' %}">
+    <link rel="stylesheet" href="{% static 'dist/css/tableexport.min.css' %}">
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
 
     <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
@@ -50,6 +51,8 @@
     <script type="text/javascript" src="{% static 'dist/js/xml.js' %}"></script>
     <script type="text/javascript" src="{% static 'dist/js/formatting.js' %}"></script>
     <script type="text/javascript" src="{% static 'dist/js/moment.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'dist/js/FileSaver.js' %}"></script>
+    <script type="text/javascript" src="{% static 'dist/js/tableexport.min.js' %}"></script>
     <script type="text/javascript">
         function textareaPopup(cell, onRendered, success, cancel) {
               const modalId = `editCellModal-${cell.getData().uid}`;
@@ -430,6 +433,7 @@
             rowHeight: 40,
             resizableRows: true,
             resizableRowGuide: true,
+            editorEmptyValue:'',
             downloadConfig: {
                 columnHeaders: true, //do not include column headers in downloaded table
 
@@ -447,6 +451,8 @@
             persistenceID: "pannePersistence",
             layout: "fitData",
             printAsHtml: true,
+            printStyled:true,
+            printRowRange:"all",
             printHeader: "<h1>Example Table Header<h1>",
             printFooter: "<h2>Example Table Footer<h2>",
             footerElement: `<button type='button' class='btn btn-success btn-sm mr-2' id="openModalBtn"><i class='fas fa-map-location'></i></button><button type='button' class='btn btn-warning btn-sm mr-2' id='reload-table' onClick="reloadPage()"><i class='fas fa-sync-alt'></i></button>`,
@@ -1045,35 +1051,34 @@
             },
         });
 
-        document.getElementById("download-xlsx").addEventListener("click", function () {
-            console.log("Téléchargement en cours...");
+        // Assurez-vous d'inclure xlsx.full.min.js dans votre projet
 
-            table.download("xlsx", "panne " + new Date() + ".xlsx", {
-                sheetName: "Pannes",
-                sheetStyle: {
-                    columnWidth: {
-                        1: 20,
-                    },
-                    font: {
-                        name: 'Arial',
-                        size: 12,
-                        bold: true,
-                    },
-                    border: {
-                        top: {color: '#000', style: 'medium'}, // Top border for all cells
-                        bottom: {color: '#000', style: 'medium'}, // Bottom border for all cells
-                        left: {color: '#000', style: 'medium'}, // Left border for all cells
-                        right: {color: '#000', style: 'medium'}, // Right border for all cells
-                    },
-                    fill: {
-                        patternType: 'solid', // Set solid fill pattern
-                        fgColor: { // Background color
-                            argb: 'F2F2F2' // Set using ARGB color code (alternative to hex)
-                        }
-                    }
-                }
-            });
-        });
+document.getElementById("download-xlsx").addEventListener("click", function () {
+    table.download("xlsx", "panne " + new Date() + ".xlsx", {
+        sheetName: "Pannes",
+        documentStyles: true, // Utilisez les styles de votre document pour la feuille Excel
+        columnStyles: [{ width: 100 }, { width: 200 }, { width: 150 }, { width: 150 }, { width: 100 }, { width: 100 }, { width: 100 }, { width: 100 }, { width: 100 }, { width: 200 }, { width: 100 }, { width: 200 }, { width: 200 }, { width: 200 }, { width: 100 }, { width: 100 }], // Définissez la largeur des colonnes
+        rowStyles: function (row) {
+            // Définissez les styles des lignes individuelles si nécessaire
+            return {
+                font: { bold: true }, // Par exemple, rend les lignes en gras
+            };
+        },
+        headerStyles: {
+            fill: {
+                fgColor: { rgb: "FF0000" }, // Couleur de fond pour les en-têtes
+            },
+            font: { color: { rgb: "FFFFFF" } }, // Couleur du texte pour les en-têtes
+            border: {
+                top: { style: "thin", color: { auto: 1 } }, // Bordure supérieure
+                bottom: { style: "thin", color: { auto: 1 } }, // Bordure inférieure
+                left: { style: "thin", color: { auto: 1 } }, // Bordure gauche
+                right: { style: "thin", color: { auto: 1 } }, // Bordure droite
+            },
+        },
+    });
+});
+
 
         document.getElementById("print-table").addEventListener("click", function () {
             const printData = table.getData(true, false); // Obtenez les données sans le format
@@ -1086,7 +1091,7 @@
             table.print(false, true, printData);
         });
 
-      
+
 
 
         table.on("rowMoved", function (row) {
