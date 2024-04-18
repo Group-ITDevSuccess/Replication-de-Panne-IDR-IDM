@@ -26,7 +26,6 @@
         {% endif %}
         <div class="mb-2">
             <button class="btn btn-secondary" id="download-xlsx"><i class="fas fa-file-excel"></i></button>
-            <button class="btn btn-secondary" id="download-pdf"><i class="fas fa-file-pdf"></i></button>
             <button class="btn btn-secondary" id="print-table"><i class="fas fa-print"></i></button>
             <button class="btn btn-info" id="history-undo"><i class="fas fa-undo-alt"></i></button>
             <button class="btn btn-info" id="history-redo"><i class="fas fa-redo-alt"></i></button>
@@ -1087,20 +1086,7 @@
             table.print(false, true, printData);
         });
 
-        document.getElementById("download-pdf").addEventListener("click", function () {
-            const pdfData = table.getData(true, false); // Obtenez les données sans le format
-            pdfData.forEach(row => {
-                // Nettoyez le contenu HTML dans chaque ligne
-                Object.keys(row).forEach(key => {
-                    row[key] = sanitizeHTML(row[key]);
-                });
-            });
-            table.download("pdf", "data.pdf", {
-                orientation: "portrait", // Définir l'orientation de la page en portrait
-                title: "Rapport Exemple", // Ajouter un titre au rapport
-                data: pdfData // Passer les données nettoyées au téléchargement PDF
-            });
-        });
+      
 
 
         table.on("rowMoved", function (row) {
