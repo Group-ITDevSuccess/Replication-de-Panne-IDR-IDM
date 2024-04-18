@@ -7,6 +7,7 @@ urlpatterns = [
     path('login/', views.LoginLDAP.as_view(), name='login'),
     path('logout/', views.logout_ldap, name='logout'),
     path('administrations/', views.index, name='index'),
+    path('get-all-permission/', views.get_all_permission, name='get_all_permission'),
     path('administrations/get-all-users/', views.all_users_json, name='get_all_users_json'),
     path('administrations/update-user/', views.update_user_json, name='update_user_json'),
     path('administrations/create-user/', views.create_user_json, name='create_user_json'),

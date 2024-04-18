@@ -32,8 +32,8 @@
             <button class="btn btn-info" id="history-redo"><i class="fas fa-redo-alt"></i></button>
             <button type="button" class="btn btn-outline-warning" data-toggle="modal"
                     data-target="#listMachineModal"><i class="fas fa-list-alt"></i></button>
-            <button type="button" class="btn btn-outline-warning" data-toggle="modal"
-                    data-target="#addCompanyModal"><i class="fas fa-plus-circle"></i></button>
+            <button type="button" class="btn btn-warning" data-toggle="modal"
+                    data-target="#addCompanyModal" {% if not user.level_1 %}disabled{% endif %}><i class="fas fa-plus-circle"></i></button>
         </div>
         <div id="pannes"></div>
 
@@ -181,11 +181,11 @@
             }
 
             function keypress(e) {
-                if (e.keyCode == 13) {
+                if (e.keyCode === 13) {
                     buildValues();
                 }
 
-                if (e.keyCode == 27) {
+                if (e.keyCode === 27) {
                     cancel();
                 }
             }
@@ -443,7 +443,7 @@
             persistence: {
                 sort: true,
                 filter: false,
-                columns: true,
+                {#columns: true,#}
             },
             persistenceID: "pannePersistence",
             layout: "fitData",
@@ -467,7 +467,7 @@
                 }
             },
             rowHeader: {
-                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()"><i class='fas fa-plus'></i></button>`,
+                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' {% if not user.level_1 %}disabled{% endif %} onclick="addRow()"><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
                 resizable: false,
                 minWidth: 30,
@@ -481,6 +481,11 @@
             movableColumns: true,
             history: true,
             success: function (data) {
+                if (data.status !== 200 && data.status !== 201) {
+                    // Display error message in alert and prevent tickCross change
+                    alert(data.error || "An error occurred while fetching data.");
+                    return; // Exit the function if there's an error
+                }
                 const breakdowns = data.data;
                 table.setData(breakdowns);
             },
@@ -501,7 +506,7 @@
             columnDefaults: {
                 tooltip: true,
                 headerHozAlign: "center",
-                editor: "input",
+                editor: false,
                 resizable: "header",
             },
             columns: [
@@ -510,60 +515,71 @@
                     frozen: true,
                     resizable: false,
                     hozAlign: "center",
-                    formatter: "tickCross",
-                    download: false,
-                    editor: tickCrossEditor,
-                    headerSort: false,
-                    cellEdited: function (cell) {
-                        let edited = cell.isEdited();
-                        if (edited) {
-                            let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
-                            if (conf) {
-                                const rowData = cell.getRow().getData();
-                                if (rowData.uid) {
-                                    fetch("{% url 'apps:update_line' %}", {
-                                        method: "POST",
-                                        headers: {
-                                            "Content-Type": "application/json"
-                                        },
-                                        body: JSON.stringify(rowData)
-                                    })
-                                        .then(response => response.json())
-                                        .then(data => {
-                                            if (data.success) {
-                                                cell.getRow().update(rowData);
-                                            }
+                    {% if user.level_1 or user.level_2 or user.level_3 or user.level_4 %}
+                        formatter: "tickCross",
+                        download: false,
+                        editor: tickCrossEditor,
+                        headerSort: false,
+                        cellEdited: function (cell, onRendered, success, cancel) {
+                            let edited = cell.isEdited();
+                            if (edited) {
+                                let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
+                                if (conf) {
+                                    const rowData = cell.getRow().getData();
+                                    if (rowData.uid) {
+                                        fetch("{% url 'apps:update_line' %}", {
+                                            method: "POST",
+                                            headers: {
+                                                "Content-Type": "application/json"
+                                            },
+                                            body: JSON.stringify(rowData)
                                         })
-                                        .catch(error => {
-                                            console.error("Error updating breakdown:", error);
-                                        });
-                                } else {
-                                    fetch("{% url 'apps:post_line' %}", {
-                                        method: "POST",
-                                        headers: {
-                                            "Content-Type": "application/json"
-                                        },
-                                        body: JSON.stringify(rowData)
-                                    })
-                                        .then(response => {
-                                            if (response.status === 409) {
-                                                return response.json().then(data => {
-                                                    alert(data.error);
-                                                    location.reload();
-                                                });
-                                            }
-                                            return response.json(); // Parser la réponse JSON pour les requêtes réussies
+                                            .then(response => {
+                                                if (!response.ok) {
+                                                    return response.json().then(data => {
+                                                        alert(data.error);
+                                                        throw new Error(data.error); // Throw an error to stop further processing
+                                                    });
+                                                }
+                                                return response.json(); // Parse the JSON response for successful requests
+                                            })
+                                            .then(data => {
+                                                if (data.success) {
+                                                    cell.getRow().update(rowData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error("Error updating breakdown:", error);
+                                                cancel()
+                                            });
+                                    } else {
+                                        fetch("{% url 'apps:post_line' %}", {
+                                            method: "POST",
+                                            headers: {
+                                                "Content-Type": "application/json"
+                                            },
+                                            body: JSON.stringify(rowData)
                                         })
+                                            .then(response => {
+                                                if (response.status === 409) {
+                                                    return response.json().then(data => {
+                                                        alert(data.error);
+                                                        location.reload();
+                                                    });
+                                                }
+                                                return response.json(); // Parser la réponse JSON pour les requêtes réussies
+                                            })
 
+                                    }
                                 }
                             }
                         }
-                    }
+                    {% endif %}
+
                 },
                 {
                     title: "N°",
                     resizable: false,
-                    field: 'no',
                     formatter: "rownum",
                     hozAlign: "center",
                     width: 40,
@@ -581,13 +597,14 @@
                             title: "Immat ou N° série",
                             field: "matriculate",
                             width: 150,
-                            editor: "list",
+                            {% if user.level_1 %}
+                                editor: "list",
+                            {% endif %}
                             editorParams: {
                                 placeholderEmpty: "Aucun Matricule",
                                 sort: "asc",
                                 valuesURL: "{% url 'apps:get_all_matriculate' %}",
                                 placeholderLoading: "Chargement...",
-
                             },
                             headerPopupIcon: "<i class='fas fa-filter' title='Filter column'></i>",
                             headerFilter: emptyHeaderFilter,
@@ -597,19 +614,26 @@
                         {
                             title: "Modèle / Remorque",
                             field: "model",
-                            editor: "input",
+                            {% if user.level_1 %}
+                                editor: "input",
+                            {% endif %}
+
                             width: 150,
                         },
                         {
                             title: "CLIENT",
                             field: "client_name",
                             width: 150,
-                            editor: "input",
+                            {% if user.level_1 %}
+                                editor: "input",
+                            {% endif %}
                         },
                         {
                             title: "Localisation",
                             field: "localisation_name",
-                            editor: "list",
+                            {% if user.level_1 %}
+                                editor: "list",
+                            {% endif %}
                             hozAlign: 'right',
                             validator: "required",
                             editorParams: {
@@ -631,20 +655,26 @@
                             title: "Début panne",
                             hozAlign: "right",
                             field: "start",
-                            sorter: "datetime",
                             width: 100,
-                            editor: "datetime",
+                            sorter: "datetime",
+                            {% if user.level_1 %}
+                                editor: "datetime",
+                            {% endif %}
                             editorParams: {
                                 format: "dd/MM/yyyy hh:mm:ss",
                                 verticalNavigation: "table",
                             }
+
                         },
                         {
                             title: "Demande rdv",
                             field: "appointment",
                             sorter: "datetime",
                             width: 100,
-                            editor: "datetime",
+                            {% if user.level_1 %}
+                                editor: "datetime",
+                            {% endif %}
+
                             editorParams: {
                                 format: "dd/MM/yyyy hh:mm:ss",
                                 verticalNavigation: "table",
@@ -657,7 +687,9 @@
                             field: "enter",
                             sorter: "datetime",
                             width: 100,
-                            editor: "datetime",
+                            {% if user.level_1 %}
+                                editor: "datetime",
+                            {% endif %}
                             editorParams: {
                                 format: "dd/MM/yyyy hh:mm:ss",
                                 verticalNavigation: "table",
@@ -666,7 +698,10 @@
                         {
                             title: "DEMANDE DE TRAVAUX",
                             field: "works",
-                            editor: textareaPopup,
+                            {% if user.level_1 %}
+                                editor: textareaPopup,
+                            {% endif %}
+
                             width: 200,
                             formatter: function (cell, formatterParams) {
                                 // Get the value from the cell
@@ -696,7 +731,9 @@
                             field: "leave",
                             sorter: "datetime",
                             width: 100,
-                            editor: "datetime",
+                            {% if user.level_1 %}
+                                editor: "datetime",
+                            {% endif %}
                             editorParams: {
                                 format: "dd/MM/yyyy hh:mm:ss", // the format of the date value stored in the cell
                                 verticalNavigation: "table", //navigate cursor around table without changing the value
@@ -735,7 +772,9 @@
                             hozAlign: "right",
                             field: "order",
                             width: 100,
-                            editor: "number",
+                            {% if user.level_2 %}
+                                editor: "number",
+                            {% endif %}
                             editorParams: {
                                 min: 0,
                                 max: 100,
@@ -750,7 +789,10 @@
                         {
                             title: "ETAT PIECES REF",
                             field: "piece",
-                            editor: textareaPopup,
+                            {% if user.level_2 %}
+                                editor: textareaPopup,
+                            {% endif %}
+
                             accessorDownload: textareaAccessor,
 
                             width: 200,
@@ -772,7 +814,9 @@
                         {
                             title: 'DIAGNOSTICS/TRAVAUX EFFECTUER AUX ATELIER & COMMENTAIRES SAV',
                             field: 'diagnostics',
-                            editor: textareaPopup,
+                            {% if user.level_2 %}
+                                editor: textareaPopup,
+                            {% endif %}
                             accessorDownload: textareaAccessor,
 
                             width: 200,
@@ -800,7 +844,9 @@
                         {
                             title: "Date prévisionnelle de sortie garage",
                             field: "prevision",
-                            editor: textareaPopup,
+                            {% if user.level_2 %}
+                                editor: textareaPopup,
+                            {% endif %}
                             accessorDownload: textareaAccessor,
 
                             width: 200,
@@ -833,7 +879,9 @@
                         {
                             title: 'COMMENTAIRES ACHATS',
                             field: 'achats',
-                            editor: textareaPopup,
+                            {% if user.level_3 %}
+                                editor: textareaPopup,
+                            {% endif %}
                             accessorDownload: textareaAccessor,
 
                             width: 200,
@@ -861,7 +909,9 @@
                         {
                             title: 'COMMENTAIRES IMPORT',
                             field: 'imports',
-                            editor: textareaPopup,
+                            {% if user.level_3 %}
+                                editor: textareaPopup,
+                            {% endif %}
                             accessorDownload: textareaAccessor,
 
                             width: 200,
@@ -912,7 +962,9 @@
                 {
                     title: "DECISION",
                     field: "decision",
-                    editor: textareaPopup,
+                    {% if user.level_4 %}
+                        editor: textareaPopup,
+                    {% endif %}
                     accessorDownload: textareaAccessor,
 
                     width: 200,
@@ -1155,7 +1207,6 @@
         let typeEl = document.getElementById("filter-type");
         let valueEl = document.getElementById("filter-value");
 
-      
 
         //Trigger setFilter function with correct parameters
         function updateFilter() {

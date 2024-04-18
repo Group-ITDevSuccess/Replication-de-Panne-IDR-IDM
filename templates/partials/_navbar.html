@@ -1,5 +1,5 @@
 {% load static %}
-<nav class="navbar navbar-expand-lg navbar-white bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a class="navbar-brand" href="{% url 'apps:index' %}">
         <img src="{% static 'img/logo-inviso.ico' %}" width="30" height="30" class="d-inline-block align-top" alt=""
              loading="lazy">
@@ -12,10 +12,10 @@
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav mr-auto">
             <li class="nav-item {% if path == '/' %}active{% endif %}">
-                <a class="nav-link text-white" href="{% url 'apps:index' %}">Home <span
+                <a class="nav-link" href="{% url 'apps:index' %}">Home <span
                         class="sr-only">(current)</span></a>
             </li>
-            <li class="nav-item {% if path == '/accounts/administrations/' %}active text-white{% endif %} {% if not user.is_staff %}disabled{% endif %}">
+            <li class="nav-item {% if path == '/accounts/administrations/' %}active{% endif %} {% if not user.is_staff %}disabled{% endif %}">
                 <a class="nav-link " href="{% url 'guard:index' %}" tabindex="-1">Administration</a>
             </li>
         </ul>
@@ -52,7 +52,9 @@
             </div>
         {% endif %}
 
-
+        <div class="btn text-white">
+            <i class="fas fa-user " title=""></i> ({{ user.username }})
+        </div>
         <div class="navbar-text d-flex my-2 my-lg-0">
             <a href="{% url 'guard:logout' %}" class="btn btn-outline-danger ml-1 my-2 my-sm-0">Déconnecter</a>
         </div>

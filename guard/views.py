@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from utils.script import ldap_login_connection, write_log, are_valid_uuids
 from .forms import LoginForm, ProfileForm
-from .models import CustomUser
+from .models import CustomUser, CustomPermission
 
 # Create your views here.
 from django.contrib.auth.decorators import user_passes_test
@@ -20,6 +20,7 @@ from django.contrib.auth.decorators import user_passes_test
 
 @login_required
 def index(request):
+    print(request.user)
     context = {
         'path': request.path
     }
@@ -30,26 +31,41 @@ def index(request):
 @csrf_exempt
 def all_users_json(request):
     users = CustomUser.objects.all().annotate(id=F('uid')).values(
-        'id', 'username', 'first_name', 'last_name', 'email', 'autoriser', 'is_active', 'is_staff', 'is_superuser',
-        'date_joined'
+        'id', 'username', 'first_name', 'last_name', 'level_1', 'level_2', 'level_3', 'level_4', 'autoriser',
+        'is_active',
+        'is_staff', 'is_superuser',
     )
     data = list(users)
     return JsonResponse(data, safe=False)
 
 
+@csrf_exempt
 @login_required
+def get_all_permission(request):
+    data = []
+    permissions = CustomPermission.objects.all()
+    for permission in permissions:
+        data.append({
+            'index': permission.uid,
+            'name': permission.name
+        })
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@csrf_exempt
 def update_user_json(request):
-    uid = are_valid_uuids(request.GET.get('id', None))
+    uid = are_valid_uuids(request.POST.get('id', None))
     message = "Uid est Null !"
     if uid is not None:
         try:
             user = CustomUser.objects.get(uid__exact=uid)
-            value = request.GET.get('value')
+            value = request.POST.get('value')
             if value == 'true':
                 value = True
             elif value == 'false':
                 value = False
-            setattr(user, request.GET.get('key'), value)
+            setattr(user, request.POST.get('key'), value)
             user.save()
             return JsonResponse({'success': 'User Modifier'}, status=201)
 
@@ -61,6 +77,7 @@ def update_user_json(request):
 
 
 @login_required
+@csrf_exempt
 def create_user_json(request):
     uid = uuid.uuid4()
     try:
@@ -77,8 +94,9 @@ def create_user_json(request):
 
 
 @login_required
+@csrf_exempt
 def delete_user_json(request):
-    uids = are_valid_uuids(request.GET.getlist('id', None))
+    uids = are_valid_uuids(request.POST.getlist('id', None))
     if uids is not None:
         user = CustomUser.objects.get(uid__in=uids)
         user.delete()
@@ -106,7 +124,7 @@ class LoginLDAP(View):
         if forms.is_valid():
             username = forms.cleaned_data['username']
             password = forms.cleaned_data['password']
-            if username not in ['admin.dev', 'user.dev']:
+            if username not in ['admin.dev', 'user.dev', 'user.staff']:
                 connexion = ldap_login_connection(username=username, password=password)
                 if connexion:
                     try:

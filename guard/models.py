@@ -12,6 +12,23 @@ class CustomUser(AbstractUser):
         help_text=gettext_lazy("Autoriser l'utilisateur à se connecter au plateforme.")
     )
 
+    level_1 = models.BooleanField(
+        default=False,
+        help_text=gettext_lazy("Action ID Motors")
+    )
+    level_2 = models.BooleanField(
+        default=False,
+        help_text=gettext_lazy("Action SAV ID Rental")
+    )
+    level_3 = models.BooleanField(
+        default=False,
+        help_text=gettext_lazy("Action Import Export ID Motors")
+    )
+    level_4 = models.BooleanField(
+        default=False,
+        help_text=gettext_lazy("Action Direction")
+    )
+
     groups = models.ManyToManyField(Group, blank=True, related_name='custom_users')
     user_permissions = models.ManyToManyField(Permission, blank=True, related_name='custom_users')
     custom_permissions = models.ManyToManyField('CustomPermission', blank=True, related_name='custom_users')
