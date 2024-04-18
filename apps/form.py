@@ -11,7 +11,7 @@ class SearchForm(forms.Form):
         widget=forms.SelectMultiple(
             attrs={'class': 'selectpicker mr-2', 'data-style': "btn-primary", 'multiple': True,
                    "data-live-search": "true",
-                   "data-header": "Choisir un Societe...", "title": "List des Societes", "data-size": "8"}),
+                   "data-header": "Choisir un Societe...", "title": "List des Sociétés", "data-size": "8"}),
         required=True
     )
 
@@ -38,7 +38,7 @@ class MachineForm(forms.ModelForm):
             'matriculate': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
             'model': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
             'description': forms.Textarea(
-                attrs={'class': 'form-control', 'placeholder': 'Ici les informations supplementaires',
+                attrs={'class': 'form-control', 'placeholder': 'Ici les informations supplémentaires',
                        'required': False}),
         }
 

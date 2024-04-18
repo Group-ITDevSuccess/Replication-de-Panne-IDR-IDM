@@ -82,208 +82,178 @@
     </main>
 {% endblock %}
 {% block script %}
-    {#    <script src="{% static 'fancygrid/modules/grid.js' %}"></script>#}
     <script src="{% static 'fancygrid/fancy.full.min.js' %}"></script>
-    {#    <script src="{% static 'fancygrid/fancy.min.js' %}"></script>#}
     <script type="text/javascript">
-
-        function getAllData(urls) {
-            return new Promise(function (resolve, reject) {
-                let xhr = new XMLHttpRequest();
-                xhr.open('GET', urls, true);  // Remplacez '/path/to/get_all_permission/' par l'URL réelle de votre vue Django
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === XMLHttpRequest.DONE) {
-                        if (xhr.status === 200) {
-                            let response = JSON.parse(xhr.responseText);
-                            resolve(response);
-                        } else {
-                            reject(xhr.responseText);
-                        }
-                    }
-                };
-                xhr.send();
-            });
-        }
-
         document.addEventListener("DOMContentLoaded", function () {
+            new FancyGrid({
+                renderTo: 'container',
+                title: {
+                    text: '<img src="{% static 'img/ID Motors.svg' %}" alt="ID Motors" style="height: 32px;position: relative;top: -4px;"> <span style="color:#bb162b;position: relative;font-size: 20px;left: 4px;"> | </span> <img src="{% static 'img/ID Rental.svg' %}" alt="ID Rental" style="height: 24px;position: relative;top: -4px;">',
+                    style: {
+                        height: 45
+                    }
+                },
+                width: 'fit',
+                height: 'fit',
+                theme: 'dark',
+                trackOver: true,
+                selModel: 'rows',
+                id: 'User-Admin',
+                searching: true,
+                cellStylingCls: ['hidden-switcher'],
+                data: {
+                    proxy: {
+                        methods: {
+                            create: 'POST',
+                            read: 'POST',
+                            update: 'POST',
+                            destroy: 'POST'
+                        },
+                        api: {
+                            create: '{% url 'guard:create_user_json' %}',
+                            read: '{% url 'guard:get_all_users_json' %}',
+                            update: '{% url 'guard:update_user_json' %}',
+                            destroy: '{% url 'guard:delete_user_json' %}'
+                        },
+                    },
+                },
+                defaults: {
+                    type: 'string',
+                    width: 100,
+                    editable: true,
+                    sortable: true,
+                    resizable: true,
+                    align: 'left',
+                    menu: true,
+                    filter: {
+                        header: true,
+                        emptyText: 'Chercher...'
+                    },
+                },
+                paging: true,
+                clicksToEdit: 1,
+                tbar: [
+                    {
+                        type: 'button',
+                        text: 'Ajouter',
+                        action: 'add',
 
-            getAllData('{% url 'guard:get_all_permission' %}').then(function (data) {
-                let dataPermission = JSON.parse(JSON.stringify(data))
-                new FancyGrid({
-                    renderTo: 'container',
-                    {#i18n: 'fr',#}
-                    title: {
-                        text: '<img src="{% static 'img/ID Motors.svg' %}" alt="ID Motors" style="height: 32px;position: relative;top: -4px;"> <span style="color:#bb162b;position: relative;font-size: 20px;left: 4px;"> | </span> <img src="{% static 'img/ID Rental.svg' %}" alt="ID Rental" style="height: 24px;position: relative;top: -4px;">',
-                        style: {
-                            height: 45
+                    },
+                    {
+                        type: 'button',
+                        text: 'Effacer',
+                        action: 'remove',
+                    }
+                ],
+                columns: [
+                    {
+                        type: 'rowdrag',
+                        locked: true,
+                    },
+                    {
+                        type: 'order',
+                        title: 'N°',
+                    },
+                    {
+                        index: 'username',
+                        title: 'Identifiant',
+                        cellAlign: 'left',
+                        headerLImageCls: 'text',
+
+                    },
+                    {
+                        index: 'first_name',
+                        title: 'Nom',
+                        cellAlign: 'left',
+                        headerLImageCls: 'text',
+                    },
+                    {
+                        index: 'last_name',
+                        title: 'Prénom',
+                        cellAlign: 'left',
+                        headerLImageCls: 'text',
+                    },
+                    {
+                        index: 'autoriser',
+                        title: 'Autoriser',
+                        type: 'switcher',
+                        cellAlign: 'center',
+                    }, {
+                        index: 'level_1',
+                        title: 'ID Motors',
+                        type: 'switcher',
+                        cellAlign: 'center',
+                    }, {
+                        index: 'level_2',
+                        title: 'SAV ID Rental',
+                        type: 'switcher',
+                        cellAlign: 'center',
+                    }, {
+                        index: 'level_3',
+                        title: 'Import Export ID Motors',
+                        type: 'switcher',
+                        cellAlign: 'center',
+                    }, {
+                        index: 'level_4',
+                        title: 'Direction',
+                        type: 'switcher',
+                        cellAlign: 'center',
+                    },
+                    {
+                        index: 'is_active',
+                        title: 'Active',
+                        type: 'switcher',
+                        cellAlign: 'center',
+                        render: function (o) {
+                            {% if not user.is_staff %}
+                                o.cls = 'hidden-switcher';
+                            {% endif %}
+                            return o
                         }
                     },
-                    width: 'fit',
-                    height: 'fit',
-                    theme: 'dark',
-                    trackOver: true,
-                    selModel: 'rows',
-                    {#rowEdit: true,#}
-                    id: 'User-Admin',
-                    searching: true,
-                    cellStylingCls: ['hidden-switcher'],
-                    data: {
-                        proxy: {
-                            methods: {
-                                create: 'POST',
-                                read: 'POST',
-                                update: 'POST',
-                                destroy: 'POST'
+                    {
+                        index: 'is_staff',
+                        title: 'Staff',
+                        type: 'switcher',
+                        cellAlign: 'center',
+                        render: function (o) {
+                            {% if not user.is_superuser %}
+                                o.cls = 'hidden-switcher';
+                            {% endif %}
+                            return o
+                        }
+                    },
+                    {
+                        index: 'is_superuser',
+                        title: 'Super Utilisateur',
+                        type: 'switcher',
+                        cellAlign: 'center',
+                        render: function (o) {
+                            {% if not user.is_superuser %}
+                                o.cls = 'hidden-switcher';
+                            {% endif %}
+                            return o
+                        }
+                    },
+                    {
+                        type: 'action',
+                        ellipsis: true,
+                        title: 'Action',
+                        rightLocked: true,
+                        filter: false,
+                        sortable: false,
+                        width: 75,
+                        items: [
+                            {
+                                text: 'Effacer',
+                                cls: 'action-column-remove',
+                                action: 'remove'
                             },
-                            api: {
-                                create: '{% url 'guard:create_user_json' %}',
-                                read: '{% url 'guard:get_all_users_json' %}',
-                                update: '{% url 'guard:update_user_json' %}',
-                                destroy: '{% url 'guard:delete_user_json' %}'
-                            },
-                        },
-                    },
-                    defaults: {
-                        type: 'string',
-                        width: 100,
-                        editable: true,
-                        sortable: true,
-                        resizable: true,
-                        align: 'left',
-                        menu: true,
-                        filter: {
-                            header: true,
-                            emptyText: 'Chercher...'
-                        },
-                    },
-                    paging: true,
-                    clicksToEdit: 1,
-                    tbar: [
-                        {
-                            type: 'button',
-                            text: 'Ajouter',
-                            action: 'add',
+                        ]
+                    }
 
-                        },
-                        {
-                            type: 'button',
-                            text: 'Effacer',
-                            action: 'remove',
-                        }
-                    ],
-                    columns: [
-                        {
-                            type: 'rowdrag',
-                            locked: true,
-                        },
-                        {
-                            type: 'order',
-                            title: 'N°',
-                        },
-                        {
-                            index: 'username',
-                            title: 'Identifiant',
-                            cellAlign: 'left',
-                            headerLImageCls: 'text',
-
-                        },
-                        {
-                            index: 'first_name',
-                            title: 'Nom',
-                            cellAlign: 'left',
-                            headerLImageCls: 'text',
-                        },
-                        {
-                            index: 'last_name',
-                            title: 'Prénom',
-                            cellAlign: 'left',
-                            headerLImageCls: 'text',
-                        },
-                        {
-                            index: 'autoriser',
-                            title: 'Autoriser',
-                            type: 'switcher',
-                            cellAlign: 'center',
-                        },{
-                            index: 'level_1',
-                            title: 'ID Motors',
-                            type: 'switcher',
-                            cellAlign: 'center',
-                        },{
-                            index: 'level_2',
-                            title: 'SAV ID Rental',
-                            type: 'switcher',
-                            cellAlign: 'center',
-                        },{
-                            index: 'level_3',
-                            title: 'Import Export ID Motors',
-                            type: 'switcher',
-                            cellAlign: 'center',
-                        },{
-                            index: 'level_4',
-                            title: 'Direction',
-                            type: 'switcher',
-                            cellAlign: 'center',
-                        },
-                        {
-                            index: 'is_active',
-                            title: 'Active',
-                            type: 'switcher',
-                            cellAlign: 'center',
-                            render: function (o) {
-                                {% if not user.is_staff %}
-                                    o.cls = 'hidden-switcher';
-                                {% endif %}
-                                return o
-                            }
-                        },
-                        {
-                            index: 'is_staff',
-                            title: 'Staff',
-                            type: 'switcher',
-                            cellAlign: 'center',
-                            render: function (o) {
-                                {% if not user.is_superuser %}
-                                    o.cls = 'hidden-switcher';
-                                {% endif %}
-                                return o
-                            }
-                        },
-                        {
-                            index: 'is_superuser',
-                            title: 'Super Utilisateur',
-                            type: 'switcher',
-                            cellAlign: 'center',
-                            render: function (o) {
-                                {% if not user.is_superuser %}
-                                    o.cls = 'hidden-switcher';
-                                {% endif %}
-                                return o
-                            }
-                        },
-                        {
-                            type: 'action',
-                            ellipsis: true,
-                            title: 'Action',
-                            rightLocked: true,
-                            filter: false,
-                            sortable: false,
-                            width: 75,
-                            items: [
-                                {
-                                    text: 'Effacer',
-                                    cls: 'action-column-remove',
-                                    action: 'remove'
-                                },
-                            ]
-                        }
-
-                    ]
-                });
-            }).catch(function (error) {
-                console.error(error);
+                ]
             });
         });
-
     </script>
 {% endblock %}

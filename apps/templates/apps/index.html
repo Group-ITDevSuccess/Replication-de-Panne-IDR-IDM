@@ -509,7 +509,7 @@
             height: "40vw",
             renderHorizontal: "virtual",
             resizableColumnGuide: true,
-            editTriggerEvent: "dblclick",
+            {#editTriggerEvent: "dblclick",#}
             initialSort: [
                 {column: "matriculate", dir: "asc"},
             ],
@@ -637,7 +637,7 @@
                         {
                             title: "CLIENT",
                             field: "client_name",
-                            width: 150,
+                            width: 125,
                             {% if user.level_1 %}
                                 editor: "input",
                             {% endif %}

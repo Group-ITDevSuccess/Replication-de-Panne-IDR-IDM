@@ -119,9 +119,8 @@ def process_data(data, is_update=False):
                 if key in ['start', 'end', 'enter', 'appointment', 'leave'] and value is not None:
                     try:
                         value = datetime.strptime(value, '%d/%m/%Y %H:%M:%S')
-
                         setattr(breakdown, key, value)
-                    except ValueError:
+                    except :
                         print(f"Erreur de conversion de date : {value}")
                         pass
 
