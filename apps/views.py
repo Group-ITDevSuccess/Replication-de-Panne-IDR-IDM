@@ -1,6 +1,8 @@
 import json
 import os
 import re
+import uuid
+
 import pytz
 
 from datetime import datetime, date
@@ -16,7 +18,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Q, Subquery, Count
 from apps.form import MachineForm
-from apps.models import Machine, Company, Breakdown, Localisation, Client
+from apps.models import Machine, Company, Breakdown, Localisation, Client, Jointe
 from utils.script import write_log, are_valid_uuids
 
 
@@ -72,21 +74,75 @@ def index(request):
 def upload_file(request):
     if request.method == 'POST' and request.FILES:
         print(f"File: {request.FILES}")
-        print(f"POST: {request.POST}")
+        # print(f"POST: {request.POST}")
+        # print(f"GET: {request.GET}")
         # print(f"Data: {json.loads(request.body.decode('utf-8'))}")
-        print(f"Data : {request}")
+        # print(f"Data : {request}")
         try:
-            uploaded = request.FILES.get('file')
-            print(f"On Upload : {uploaded}")
-            # print(f"Filename : {uploaded.name}")  # Print filename for debugging
-            # print(f"Content Type : {uploaded.content_type}")  # Print content type
+            uploaded_files = request.FILES.getlist('file', None)
+            print(uploaded_files)
+            id_param = request.GET.get('id', None)
+            # print(f"ID récupéré : {id_param}")
+            if uploaded_files is not None and id_param is not None:
+                breakdown = Breakdown.objects.get(uid__exact=id_param)
+                for uploaded_file in uploaded_files:
+                    # Générer un UID unique pour le nom du fichier
+                    uid = str(uuid.uuid4())
+                    file_extension = os.path.splitext(uploaded_file.name)[1]
+                    new_filename = f"{uid}{file_extension}"
 
-            # Save the image to the media directory (logic not shown here)
+                    # Enregistrer le fichier dans le répertoire media
+                    filepath = os.path.join('media', new_filename)
+                    with open(filepath, 'wb') as destination:
+                        for chunk in uploaded_file.chunks():
+                            destination.write(chunk)
+
+                    # Créer l'objet Jointe et l'associer à Breakdown
+                    fichier = Jointe.objects.create(name=uploaded_file.name, fichier=new_filename)
+                    breakdown.jointe.add(fichier)
+
+                breakdown.save()
 
             return JsonResponse({'success': True}, status=201)
         except KeyError:
             return JsonResponse({'error': 'No image uploaded'}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+@csrf_exempt
+def get_file_jointe(request):
+    gets = json.loads(request.body.decode('utf-8'))
+    uid = gets.get('uid', None)
+    datas = []
+    if uid:
+        try:
+            breakdown = Breakdown.objects.get(uid__exact=uid)
+            jointe = breakdown.jointe.all().values('uid', 'name', 'fichier', 'created_at')
+            datas = [{key: format_value(value) for key, value in data.items()} for data in jointe]
+        except Breakdown.DoesNotExist:
+            print("Breakdown Introuvable !")
+    return JsonResponse({'data': datas}, status=200, safe=False)
+
+
+@csrf_exempt
+def delete_jointe(request):
+
+    try:
+        print(f"{request.POST}, {request.body}, {request.GET}")
+        # gets = json.loads(request.body.decode('utf-8'))
+        uid_breakdown = request.POST.get('uid_breakdown', None)
+        uid_jointe = request.POST.get('uid_jointe', None)
+        if uid_breakdown and uid_jointe:
+            breakdown = Breakdown.objects.get(uid__exact=uid_breakdown)
+            jointe = breakdown.jointe.get(uid__exact=uid_jointe)
+            jointe.delete()
+            return JsonResponse({'success': True}, status=201)
+    except Breakdown.DoesNotExist:
+        print("Breakdown Introuvable !")
+    except Exception as e:
+        write_log(str(e))
+        print("Erreur de suppression")
+    return JsonResponse({'success': False}, status=301)
 
 
 @csrf_exempt
@@ -145,7 +201,7 @@ def get_all_machine_with_breakdown_false(request):
                 'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
                 'appointment', 'enter', 'order', 'leave',
                 'works', 'prevision', 'piece', 'diagnostics',
-                'achats', 'imports', 'decision','archived_status'
+                'achats', 'imports', 'decision', 'archived_status'
             )
             if breakdowns_archived:
                 items_breakdown['_children'] = [{key: format_value(value) for key, value in machine.items()} for machine

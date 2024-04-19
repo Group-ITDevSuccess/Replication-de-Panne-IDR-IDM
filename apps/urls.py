@@ -13,6 +13,8 @@ urlpatterns = [
     path('get-all-localisation/', views.gat_all_localisation, name='gat_all_localisation'),
     path('get-all-breakdown/', views.get_all_breakdown, name='get_all_breakdown'),
     path('file-upload/', views.upload_file, name='upload_file'),
+    path('get-file-jointe/', views.get_file_jointe, name='get_file_jointe'),
+    path('delete-file-jointe/', views.delete_jointe, name='delete_jointe'),
 
     path('delete-breakdown/', views.delete_breakdown, name='delete_breakdown'),
     path('get-machines/', views.get_machines, name='get_machines'),

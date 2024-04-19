@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
 
     <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
-   
+
 {% endblock %}
 {% block content %}
     <main class="container-fluid mt-4">
@@ -37,6 +37,7 @@
                     data-target="#addCompanyModal" {% if not user.level_1 %}disabled{% endif %}><i
                     class="fas fa-plus-circle"></i>
             </button>
+
         </div>
         <div id="pannes"></div>
 
@@ -67,6 +68,9 @@
     <script type="text/javascript" src="{% static 'plupart/dist/5x5jqpi.js' %}"></script>
 
     <script type="text/javascript">
+        let iconDelete = function (cell, formatterParams) { //plain text value
+            return "<i class='fa fa-trash-can'></i>";
+        };
         function textareaPopup(cell, onRendered, success, cancel) {
             const uid = cell.getData().uid_name;
             const modalId = `editCellModal-${uid}`;
@@ -148,10 +152,10 @@
             {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
             const uid = cell.getData().uid_name;
             const modalId = `uploadCellModal-${uid}`;
-
+            const tablePiece = `piece-load-${uid}`
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="${modalId}Label">Piece Jointe du ${cell.getData().matriculate}</h5>
@@ -160,9 +164,15 @@
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <div class="container">
-                                    <div id="uploader" class="uploader" style="width: 100%">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div id="uploader" class="uploader" style="width: 100%"></div>
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <div id="${tablePiece}"></div>
+                                    </div>
                                 </div>
+
                             </div>
                         </div>
                     </div>
@@ -174,22 +184,96 @@
 
             const modalElement = document.getElementById(modalId);
             $(modalElement).modal('show');
-          
+
             $(`.uploader`).initUploader({
                 destination:'{% url 'apps:upload_file' %}',
                 destinationParams: {
                     id: `${uid}`
                 },
-                selectOpts: {a: 'jquery', b: 'script', c: 'net', d: 'auther', contentType: true},
+                {#selectOpts: {a: 'jquery', b: 'script', c: 'net', d: 'auther', contentType: true},#}
                 showDescription: true,
                 fileLimit: 10,
-                sizeLimit: 1000,
+                sizeLimit: 50,
                 postFn : function() {
-                    {#$(`#${modalId}`).remove();#}
 
                     $(modalElement).modal('hide');
                 },
                 arguments: ''
+            });
+            let pieces = new Tabulator(`#${tablePiece}`, {
+                ajaxURL:"{% url 'apps:get_file_jointe' %}", //ajax URL
+                ajaxContentType: "json",
+                
+                ajaxConfig:"POST",
+                ajaxParams:{uid:uid},
+                success: function (data) {
+                    if (data.status !== 200 && data.status !== 201) {
+                        // Display error message in alert and prevent tickCross change
+                        alert(data.error || "An error occurred while fetching data.");
+                        return; // Exit the function if there's an error
+                    }
+                    const piece = data.data;
+                    console.log(data)
+                    table.setData(piece);
+                },
+                progressiveLoad:"load",
+                progressiveLoadDelay:200,
+                layout:"fitDataStretch",
+                height:"205px",
+                placeholder: "Aucun Pièce Jointe",
+                placeholderHeaderFilter: 'Aucun Pièce Jointe Correspondent',
+                rowHeight: 40,
+                resizableRows: true,
+                resizableRowGuide: true,
+                rowHeader:{formatter:"rownum", headerSort:false, hozAlign:"center", resizable:false, frozen:true},
+                columns: [
+                    {title:"Titre", field:"name", headerSort:false, width: 100},
+                    {title:"Nom du Fichier", field:"fichier", headerSort:false, width: 200},
+                    {title:"Date", field:"created_at", hozAlign:"center", sorter:"date", headerSort:false, width: 100},
+                    {
+                        title: 'Action',
+                        formatter: iconDelete,
+                        headerSort: false,
+                        frozen: true,
+                        resizable: false,
+                        hozAlign: "center",
+                        download: false,
+                        cellClick: function (e, cell) {
+
+                            let fileId = cell.getData().uid;
+                            if (fileId) {
+                                if (confirm("Est-vous sûr de vouloir supprimer ce piece jointe ceci ?")) {
+    
+                                    fetch("{% url 'apps:delete_jointe' %}", {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/x-www-form-urlencoded",
+                                            "X-CSRFToken": "{{ csrf_token }}"
+                                        },
+                                        body: new URLSearchParams({
+                                            'uid_breakdown': uid,
+                                            'uid_jointe': fileId,
+                                        })
+                                    })
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                pieces.deleteRow(cell.getRow());
+    
+                                            } else {
+                                                console.error("Error deleting Breakdown:", data.error);
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error("Error deleting Breakdown:", error);
+                                        });
+                                }
+    
+                            } 
+                        
+                        }
+                    }
+                ]
             });
 
 
@@ -281,9 +365,7 @@
             return container;
         }
 
-        let iconDelete = function (cell, formatterParams) { //plain text value
-            return "<i class='fa fa-trash-can'></i>";
-        };
+
 
 
         let tableMachine = new DataTable('#tableMachine', {
@@ -312,10 +394,8 @@
 
             // Get the current value of the cell
             let currentValue = cell.getValue();
-            console.log(currentValue)
             // Check if both matriculate and model fields are not empty
             let canTick = cell.getRow().getData().matriculate;
-            console.log(cell.getRow().CellEdit())
             // Set the checkbox state based on the current value and allowed state
             checkbox.checked = currentValue === true && canTick;
             checkbox.disabled = !canTick;
@@ -614,7 +694,6 @@
                                 let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
                                 if (conf) {
                                     const rowData = cell.getRow().getData();
-                                    console.log("UID: " + rowData.uid_name)
                                     if (rowData.uid_name) {
                                         fetch("{% url 'apps:update_line' %}", {
                                             method: "POST",
@@ -1090,8 +1169,9 @@
                     cellClick: function (e, cell) {
 
                         let breakdownId = cell.getData().uid_name;
-                        if (breakdownId) {
-                            if (confirm("Est-vous sûr de vouloir supprimer ceci ?")) {
+                        let archived = cell.getData().archived_status;
+                        if (breakdownId && !archived) {
+                            if (confirm("Est-vous sûr de vouloir archiver ceci ?")) {
 
                                 fetch("{% url 'apps:delete_breakdown' %}", {
                                     method: "POST",
@@ -1115,7 +1195,10 @@
                                     });
                             }
 
-                        } else {
+                        } else if (archived) {
+                            alert("On ne peux pas archiver un dossier archiver")
+                        }
+                        else {
                             table.deleteRow(cell.getRow());
                         }
                     }

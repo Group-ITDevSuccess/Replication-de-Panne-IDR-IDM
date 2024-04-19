@@ -62,6 +62,14 @@ class Machine(BaseModel):
         return self.breakdown.filter(archived=False).exists()
 
 
+class Jointe(BaseModel):
+    name = models.CharField(max_length=255)
+    fichier = models.FileField(upload_to='media/')
+
+    def __str__(self):
+        return self.name
+
+
 class Breakdown(BaseModel):
     localisation = models.ForeignKey('Localisation', on_delete=models.CASCADE, blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.CASCADE, blank=True, null=True)
@@ -78,14 +86,8 @@ class Breakdown(BaseModel):
     diagnostics = models.TextField(blank=True, null=True, verbose_name='Diagnostics & Commentaire SAV')
     achats = models.TextField(blank=True, null=True, verbose_name='Commentaire Achats')
     imports = models.TextField(blank=True, null=True, verbose_name='Commentaire Import')
+    jointe = models.ManyToManyField('Jointe', blank=True, verbose_name='Piece Jointe')
 
     def __str__(self):
         return f"{self.created_at} | {self.client}"
 
-
-@receiver(pre_save, sender=Breakdown)
-def ensure_unique_active_breakdown(sender, instance, **kwargs):
-    if instance.archived is False:
-        existing_active_breakdowns = Breakdown.objects.filter(machine=instance.machine, archived=False)
-        if existing_active_breakdowns.exists():
-            existing_active_breakdowns.update(archived=True)
