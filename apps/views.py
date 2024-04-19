@@ -128,7 +128,7 @@ def get_file_jointe(request):
 def delete_jointe(request):
 
     try:
-        print(f"{request.POST}, {request.body}, {request.GET}")
+        # print(f"{request.POST}, {request.body}, {request.GET}")
         # gets = json.loads(request.body.decode('utf-8'))
         uid_breakdown = request.POST.get('uid_breakdown', None)
         uid_jointe = request.POST.get('uid_jointe', None)

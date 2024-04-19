@@ -203,7 +203,22 @@
             let pieces = new Tabulator(`#${tablePiece}`, {
                 ajaxURL:"{% url 'apps:get_file_jointe' %}", //ajax URL
                 ajaxContentType: "json",
-                
+                columnDefaults: {
+                    tooltip: true,
+                    headerHozAlign: "center",
+                    editor: false,
+                    resizable: "header",
+                },
+                 persistence: {
+                    sort: true,
+                    filter: false,
+                    {#columns: true,#}
+                },
+                headerSort: true,
+                history: true,
+                headerSortClickElement: 'icon',
+                selectableRangeClearCells: true,
+                columnHeaderVertAlign: "bottom",
                 ajaxConfig:"POST",
                 ajaxParams:{uid:uid},
                 success: function (data) {
@@ -229,7 +244,7 @@
                 columns: [
                     {title:"Titre", field:"name", headerSort:false, width: 100},
                     {title:"Nom du Fichier", field:"fichier", headerSort:false, width: 200},
-                    {title:"Date", field:"created_at", hozAlign:"center", sorter:"date", headerSort:false, width: 100},
+                    {title:"Date", field:"created_at", hozAlign:"center", sorter:"date", headerSort:false, width: 125},
                     {
                         title: 'Action',
                         formatter: iconDelete,
@@ -243,7 +258,7 @@
                             let fileId = cell.getData().uid;
                             if (fileId) {
                                 if (confirm("Est-vous sûr de vouloir supprimer ce piece jointe ceci ?")) {
-    
+
                                     fetch("{% url 'apps:delete_jointe' %}", {
                                         method: "POST",
                                         headers: {
@@ -259,7 +274,7 @@
                                         .then(data => {
                                             if (data.success) {
                                                 pieces.deleteRow(cell.getRow());
-    
+
                                             } else {
                                                 console.error("Error deleting Breakdown:", data.error);
                                             }
@@ -268,9 +283,9 @@
                                             console.error("Error deleting Breakdown:", error);
                                         });
                                 }
-    
-                            } 
-                        
+
+                            }
+
                         }
                     }
                 ]
