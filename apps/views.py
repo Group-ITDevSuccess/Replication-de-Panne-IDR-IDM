@@ -1,18 +1,21 @@
 import json
+import os
 import re
 import pytz
 
 from datetime import datetime, date
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.files.storage import FileSystemStorage
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Q, Subquery, Count
-from apps.form import MachineForm, SearchForm
+from apps.form import MachineForm
 from apps.models import Machine, Company, Breakdown, Localisation, Client
 from utils.script import write_log, are_valid_uuids
 
@@ -66,6 +69,27 @@ def index(request):
 
 
 @csrf_exempt
+def upload_file(request):
+    if request.method == 'POST' and request.FILES:
+        print(f"File: {request.FILES}")
+        print(f"POST: {request.POST}")
+        # print(f"Data: {json.loads(request.body.decode('utf-8'))}")
+        print(f"Data : {request}")
+        try:
+            uploaded = request.FILES.get('file')
+            print(f"On Upload : {uploaded}")
+            # print(f"Filename : {uploaded.name}")  # Print filename for debugging
+            # print(f"Content Type : {uploaded.content_type}")  # Print content type
+
+            # Save the image to the media directory (logic not shown here)
+
+            return JsonResponse({'success': True}, status=201)
+        except KeyError:
+            return JsonResponse({'error': 'No image uploaded'}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+@csrf_exempt
 @login_required
 def get_all_machine_with_breakdown_false(request):
     if request.method == 'GET':
@@ -91,13 +115,12 @@ def get_all_machine_with_breakdown_false(request):
             'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
             'appointment', 'enter', 'order', 'leave',
             'works', 'prevision', 'piece', 'diagnostics',
-            'achats', 'imports', 'decision'
+            'achats', 'imports', 'decision', 'archived_status'
         )
 
         breakdowns_list = [{key: format_value(value) for key, value in machine.items()} for machine in machines]
         datas = []
         for items_breakdown in breakdowns_list:
-            uid_breakdown = items_breakdown.get('uid_name')
             matricule = items_breakdown.get('matriculate')
             breakdowns_archived = Machine.objects.filter(breakdown__machine__matriculate=matricule,
                                                          breakdown__archived=True).annotate(
@@ -116,20 +139,19 @@ def get_all_machine_with_breakdown_false(request):
                 imports=F('breakdown__imports'),
                 decision=F('breakdown__decision'),
                 uid_name=F('breakdown__uid'),
+                archived_status=F('breakdown__archived'),
 
             ).values(
                 'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
                 'appointment', 'enter', 'order', 'leave',
                 'works', 'prevision', 'piece', 'diagnostics',
-                'achats', 'imports', 'decision'
+                'achats', 'imports', 'decision','archived_status'
             )
             if breakdowns_archived:
-                print(f"{uid_breakdown} a de archive !")
                 items_breakdown['_children'] = [{key: format_value(value) for key, value in machine.items()} for machine
                                                 in breakdowns_archived]
 
             datas.append(items_breakdown)
-        print(datas)
         return JsonResponse(datas, status=200, safe=False)
     else:
         return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)

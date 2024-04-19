@@ -12,6 +12,7 @@ urlpatterns = [
     path('get-all-matriculate/', views.get_all_matriculate, name='get_all_matriculate'),
     path('get-all-localisation/', views.gat_all_localisation, name='gat_all_localisation'),
     path('get-all-breakdown/', views.get_all_breakdown, name='get_all_breakdown'),
+    path('file-upload/', views.upload_file, name='upload_file'),
 
     path('delete-breakdown/', views.delete_breakdown, name='delete_breakdown'),
     path('get-machines/', views.get_machines, name='get_machines'),

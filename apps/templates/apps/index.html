@@ -34,7 +34,8 @@
                     data-target="#listMachineModal"><i class="fas fa-list-alt"></i></button>
             <button type="button" class="btn btn-warning" data-toggle="modal"
                     data-target="#addCompanyModal" {% if not user.level_1 %}disabled{% endif %}><i
-                    class="fas fa-plus-circle"></i></button>
+                    class="fas fa-plus-circle"></i>
+            </button>
         </div>
         <div id="pannes"></div>
 
@@ -49,6 +50,7 @@
     <script src="https://code.highcharts.com/maps/modules/offline-exporting.js"></script>
     <script src="https://code.highcharts.com/maps/modules/accessibility.js"></script>
 
+
     <script type="text/javascript" src="{% static 'tabulator/dist/js/tabulator.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'tabulator/dist/js/luxon.js' %}"></script>
     <script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.umd.min.js' %}"></script>
@@ -61,77 +63,135 @@
     <script type="text/javascript" src="{% static 'dist/js/moment.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'dist/js/FileSaver.js' %}"></script>
     <script type="text/javascript" src="{% static 'dist/js/tableexport.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'plupart/dist/5x5jqpi.js' %}"></script>
+
     <script type="text/javascript">
         function textareaPopup(cell, onRendered, success, cancel) {
-              const modalId = `editCellModal-${cell.getData().uid_name}`;
+            const uid = cell.getData().uid_name;
+            const modalId = `editCellModal-${uid}`;
 
-              const modalHtml = `
+            const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
-                  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-                    <div class="modal-content">
-                      <div class="modal-header">
-                        <h5 class="modal-title" id="${modalId}Label">Ajout ou Modification</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                          <span aria-hidden="true">&times;</span>
-                        </button>
-                      </div>
-                      <div class="modal-body">
-                        <textarea id="cellValue" class="form-control"></textarea>
-                      </div>
-                      <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
-                        <button type="button" class="btn btn-primary" id="saveChanges">Sauvegarder</button>
-                      </div>
+                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">Ajout ou Modification</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <textarea id="cellValue-${uid}" class="form-control"></textarea>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                                <button type="button" class="btn btn-primary" id="saveChanges-${uid}">Sauvegarder</button>
+                            </div>
+                        </div>
                     </div>
-                  </div>
                 </div>
-              `;
+            `;
 
-              let textArea;
 
-                $('body').append(modalHtml);
 
-                // Get the newly created modal element
-                const modalElement = document.getElementById(modalId);
+            $('body').append(modalHtml);
 
-                // Show the modal using Bootstrap's data attributes
-                $(modalElement).modal('show');
+            const modalElement = document.getElementById(modalId);
 
-                // Set the textarea value
-                textArea = document.getElementById("cellValue");
-                textArea.value = cell.getValue();
+            $(modalElement).modal('show');
+            let textArea;
 
-                // Initialize Summernote on the textarea (consider using a different rich text editor if needed)
-                $(textArea).summernote({
-                  placeholder: 'Enter text here...',
-                  tabsize: 0.5,
-                  height: 150,
-                  codemirror: { // codemirror options
-                        theme: 'monokai'
-                    },
+            textArea = document.getElementById(`cellValue-${uid}`);
+            textArea.value = cell.getValue();
 
-                  disableResizeEditor: true, // Disable editor resize
-                  disableDragAndDrop: true, // Disable drag and drop
+            $(textArea).summernote({
+                placeholder: 'Enter text here...',
+                tabsize: 0.5,
+                height: 150,
+                codemirror: {
+                    theme: 'monokai'
+                },
+                disableResizeEditor: true,
+                disableDragAndDrop: true,
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'italic', 'underline', 'clear']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', []], // Les options d'insertion sont vides pour désactiver les fonctionnalités de téléchargement de fichiers
+                    ['view', ['fullscreen', 'codeview']],
+                ],
+                buttons: {
+                    file: false, // Désactiver complètement le bouton "File"
+                },
+            });
 
-                });
 
-                // Save changes button click event handler
-                const saveChangesBtn = document.getElementById("saveChanges");
-                saveChangesBtn.addEventListener("click", () => {
-                  const newValue = $(textArea).summernote('code');
-                  success(newValue);
-                  $(modalElement).modal('hide');
-                });
 
-                $(modalElement).on('hide.bs.modal', () => {
-                  $(textArea).summernote('destroy');
-                  cancel();
+            const saveChangesBtn = document.getElementById(`saveChanges-${uid}`);
+            saveChangesBtn.addEventListener("click", () => {
+                const newValue = $(textArea).summernote('code');
+                success(newValue);
+                $(modalElement).modal('hide');
+            });
 
-                  // Remove the modal from the DOM to prevent memory leaks
-                  $(`#${modalId}`).remove();
-                });
-              return textArea;
-            }
+            $(modalElement).on('hide.bs.modal', () => {
+                $(textArea).summernote('destroy');
+                cancel();
+                $(`#${modalId}`).remove();
+            });
+
+            return textArea;
+        }
+        function uploadPiecePopup(cell, onRendered, success, cancel) {
+            {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
+            const uid = cell.getData().uid_name;
+            const modalId = `uploadCellModal-${uid}`;
+
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">Piece Jointe du ${cell.getData().matriculate}</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="container">
+                                    <div id="uploader" class="uploader" style="width: 100%">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+
+            $('body').append(modalHtml);
+
+            const modalElement = document.getElementById(modalId);
+            $(modalElement).modal('show');
+            $(`.uploader`).initUploader({
+                destination:'{% url 'apps:upload_file' %}',
+                destinationParams: {
+                    id: `${uid}`
+                },
+                selectOpts: {a: 'jquery', b: 'script', c: 'net', d: 'auther', contentType: true},
+                showDescription: true,
+                fileLimit: 10,
+                sizeLimit: 1000,
+                postFn : function() {
+                    {#$(`#${modalId}`).remove();#}
+
+                    $(modalElement).modal('hide');
+                },
+                arguments: ''
+            });
+
+            return true;
+        }
 
         let datetimeEditor = function (cell, onRendered, success, cancel, editorParams) {
 
@@ -245,25 +305,30 @@
             // Create the checkbox element
             let checkbox = document.createElement("input");
             checkbox.type = "checkbox";
+            checkbox.className = "mt-3";
 
             // Get the current value of the cell
             let currentValue = cell.getValue();
-
+            console.log(currentValue)
             // Check if both matriculate and model fields are not empty
             let canTick = cell.getRow().getData().matriculate;
-
+            console.log(cell.getRow().CellEdit())
             // Set the checkbox state based on the current value and allowed state
             checkbox.checked = currentValue === true && canTick;
             checkbox.disabled = !canTick;
+            if (cell.getRow().getData().archived_status){
+                checkbox.disabled = true
+                checkbox.checked = false
+            }
 
             // Handle checkbox change event
             checkbox.addEventListener("change", function () {
                 if (canTick) {
                     success(checkbox.checked);
                 } else {
-                    // If not allowed to tick, reset the checkbox and show an alert
+                    
                     checkbox.checked = false;
-                    alert("Please fill in 'Matriculate' and 'Model' fields before marking.");
+                    
                 }
             });
 
@@ -573,7 +638,8 @@
                                                 console.error("Error updating breakdown:", error);
                                                 cancel()
                                             });
-                                    } else {
+                                    }
+                                    else {
                                         fetch("{% url 'apps:post_line' %}", {
                                             method: "POST",
                                             headers: {
@@ -1004,6 +1070,13 @@
                         return tempElement.textContent;
                     },
                 },
+                {
+                    title: "Piece Jointe",
+                    frozen: true,
+                    {% if user.level_4 %}
+                        editor: uploadPiecePopup,
+                    {% endif %}
+                  },
                 {
                     formatter: iconDelete,
                     headerSort: false,

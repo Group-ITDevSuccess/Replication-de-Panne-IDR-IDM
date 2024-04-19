@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{% static 'dist/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/bootstrap-select.min.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/dataTables.dataTables.css' %}">
+{#    <link rel="stylesheet" href="{% static 'plupart/js/jquery.plupload.queue/css/jquery.plupload.queue.css' %}">#}
 
     <style>
         *, body {
@@ -211,6 +212,7 @@
         }
 
 
+
     </style>
     {% block style %}{% endblock %}
 </head>
@@ -220,9 +222,9 @@
 {% endif %}
 {% block content %}{% endblock %}
 {% if user.is_authenticated %}
-    {% include 'partials/_modal_add_machine.html' %}
-    {% include 'partials/_modal_list_machine.html' %}
-    {% include 'partials/_modal_map.html' %}
+{#    {% include 'partials/_modal_add_machine.html' %}#}
+{#    {% include 'partials/_modal_list_machine.html' %}#}
+{#    {% include 'partials/_modal_map.html' %}#}
 {% endif %}
 <script>
 
@@ -235,6 +237,8 @@
 <script type="text/javascript" src="{% static 'dist/js/dataTables.buttons.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/buttons.dataTables.js' %}"></script>
 <script type="text/javascript" src="{% static 'dist/js/bootstrap-select.min.js' %}"></script>
+
+{#<script type="text/javascript" src="{% static 'plupart/js/jquery.plupload.queue/jquery.plupload.queue.min.js' %}"></script>#}
 
 <script>
     $(function () {
