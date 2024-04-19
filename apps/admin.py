@@ -35,7 +35,7 @@ company_fieldsets = (
 
 machine_fieldsets = (
     (None, {
-        'fields': ('matriculate', 'model', 'description')
+        'fields': ('matriculate', 'model', 'description', 'breakdown')
     }),
     ('Dates', {
         'fields': ('created_at', 'updated_at'),
@@ -66,8 +66,8 @@ client_fieldsets = (
 breakdown_fieldsets = (
     (None, {
         'fields': (
-        'machine', 'location', 'client', 'start', 'appointment', 'enter', 'order', 'prevision', 'piece', 'diagnostics',
-        'achats', 'imports', 'decision')
+            'localisation', 'client', 'start', 'archived', 'appointment', 'enter', 'order', 'prevision', 'piece', 'diagnostics',
+            'achats', 'imports', 'decision')
     }),
     ('Dates', {
         'fields': ('created_at', 'updated_at'),
@@ -87,6 +87,7 @@ class CompanyAdmin(admin.ModelAdmin):
 class MachineAdmin(admin.ModelAdmin):
     fieldsets = machine_fieldsets
     readonly_fields = ('created_at', 'updated_at')
+    filter_horizontal = ('breakdown',)
 
 
 @admin.register(Client)

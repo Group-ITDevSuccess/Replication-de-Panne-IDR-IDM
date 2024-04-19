@@ -6,15 +6,15 @@ from datetime import datetime, date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import F, Subquery
-
+from django.db.models import F, Q, Subquery, Count
 from apps.form import MachineForm, SearchForm
 from apps.models import Machine, Company, Breakdown, Localisation, Client
-from utils.script import write_log
+from utils.script import write_log, are_valid_uuids
 
 
 def extract_name(chaine):
@@ -27,64 +27,110 @@ def extract_name(chaine):
         return None, None
 
 
+def format_value(value):
+    if isinstance(value, datetime):
+        if timezone.is_aware(value):  # Vérifie si l'objet datetime est déjà conscient du fuseau horaire
+            value = timezone.make_naive(value)  # Convertit l'objet datetime en objet datetime naïf
+        value = timezone.make_aware(value, timezone=pytz.timezone('Indian/Antananarivo'))
+        return value.strftime('%d/%m/%Y %H:%M:%S')  # Format français date et heure
+    elif isinstance(value, date):
+        if timezone.is_aware(value):  # Vérifie si l'objet date est déjà conscient du fuseau horaire
+            value = timezone.make_naive(value)  # Convertit l'objet date en objet date naïf
+        value = timezone.make_aware(value, timezone=pytz.timezone('Indian/Antananarivo'))
+        return value.strftime('%d/%m/%Y')  # Format français date
+    return value
+
+
+def format_datetime(value):
+    write_log(f"======================== {value} ========================")
+    if value is not None and value.strip():  # Vérifiez si la valeur n'est pas vide
+        try:
+            value = datetime.strptime(value, '%d/%m/%Y %H:%M:%S')
+            value = timezone.make_aware(value, timezone=pytz.timezone('Indian/Antananarivo'))
+            value = value.strftime('%Y-%m-%d %H:%M:%S')
+            print(value)
+            return value  # Format attendu par Django
+        except Exception as e:
+            write_log(f"Erreur pour {value} : {str(e)}")
+    return None  # Retourne None si la valeur est vide ou ne peut pas être formatée
+
+
 @login_required
 def index(request):
-    companies = []
-
-    if request.method == 'POST':
-        form = SearchForm(request.POST)
-        if form.is_valid():
-            companies = form.cleaned_data['company']
-        else:
-            print("Formulaire Invalide !")
-    else:
-        form = SearchForm()
-
     context = {
-        'form': form,
         'path': request.path,
         'form_add_machine': MachineForm(),
         'get_breakdown_url': ''
     }
-
-    if companies:
-        companies_str = ','.join(str(company) for company in companies)
-        context['companies'] = companies_str
-
     return render(request, 'apps/index.html', context)
 
 
 @csrf_exempt
 @login_required
-def get_breakdown(request):
+def get_all_machine_with_breakdown_false(request):
     if request.method == 'GET':
-        breakdowns = Breakdown.objects.all().annotate(
-            matriculate=F('machine__matriculate'),  # Renommer la clé 'matriculate' en 'immatriculation'
-            model=F('machine__model'),  # Renommer la clé 'model' en 'modele'
-            localisation_name=F('localisation__locality'),
-            client_name=F('client__name')  # Renommer la clé 'client_name' en 'nom_client'
+        machines = Machine.objects.filter(breakdown__archived=False, breakdown__isnull=False).annotate(
+            localisation_name=F('breakdown__localisation__locality'),
+            client_name=F('breakdown__client__name'),
+            appointment=F('breakdown__appointment'),
+            enter=F('breakdown__enter'),
+            order=F('breakdown__order'),
+            start=F('breakdown__start'),
+            leave=F('breakdown__leave'),
+            works=F('breakdown__works'),
+            prevision=F('breakdown__prevision'),
+            piece=F('breakdown__piece'),
+            diagnostics=F('breakdown__diagnostics'),
+            achats=F('breakdown__achats'),
+            imports=F('breakdown__imports'),
+            decision=F('breakdown__decision'),
+            uid_name=F('breakdown__uid'),
+            archived_status=F('breakdown__archived'),
+
         ).values(
-            'uid', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
-            'appointment', 'enter', 'order', 'leave', 'works', 'prevision', 'piece', 'diagnostics', 'achats', 'imports',
-            'decision'
+            'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
+            'appointment', 'enter', 'order', 'leave',
+            'works', 'prevision', 'piece', 'diagnostics',
+            'achats', 'imports', 'decision'
         )
-        print(breakdowns)
 
-        def format_value(value):
-            if isinstance(value, datetime):
-                if timezone.is_aware(value):  # Vérifie si l'objet datetime est déjà conscient du fuseau horaire
-                    value = timezone.make_naive(value)  # Convertit l'objet datetime en objet datetime naïf
-                value = timezone.make_aware(value, timezone=pytz.timezone('Indian/Antananarivo'))
-                return value.strftime('%d/%m/%Y %H:%M:%S')  # Format français date et heure
-            elif isinstance(value, date):
-                if timezone.is_aware(value):  # Vérifie si l'objet date est déjà conscient du fuseau horaire
-                    value = timezone.make_naive(value)  # Convertit l'objet date en objet date naïf
-                value = timezone.make_aware(value, timezone=pytz.timezone('Indian/Antananarivo'))
-                return value.strftime('%d/%m/%Y')  # Format français date
-            return value
+        breakdowns_list = [{key: format_value(value) for key, value in machine.items()} for machine in machines]
+        datas = []
+        for items_breakdown in breakdowns_list:
+            uid_breakdown = items_breakdown.get('uid_name')
+            matricule = items_breakdown.get('matriculate')
+            breakdowns_archived = Machine.objects.filter(breakdown__machine__matriculate=matricule,
+                                                         breakdown__archived=True).annotate(
+                localisation_name=F('breakdown__localisation__locality'),
+                client_name=F('breakdown__client__name'),
+                appointment=F('breakdown__appointment'),
+                enter=F('breakdown__enter'),
+                order=F('breakdown__order'),
+                start=F('breakdown__start'),
+                leave=F('breakdown__leave'),
+                works=F('breakdown__works'),
+                prevision=F('breakdown__prevision'),
+                piece=F('breakdown__piece'),
+                diagnostics=F('breakdown__diagnostics'),
+                achats=F('breakdown__achats'),
+                imports=F('breakdown__imports'),
+                decision=F('breakdown__decision'),
+                uid_name=F('breakdown__uid'),
 
-        breakdowns_list = [{key: format_value(value) for key, value in breakdown.items()} for breakdown in breakdowns]
-        return JsonResponse(breakdowns_list, status=200, safe=False)
+            ).values(
+                'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
+                'appointment', 'enter', 'order', 'leave',
+                'works', 'prevision', 'piece', 'diagnostics',
+                'achats', 'imports', 'decision'
+            )
+            if breakdowns_archived:
+                print(f"{uid_breakdown} a de archive !")
+                items_breakdown['_children'] = [{key: format_value(value) for key, value in machine.items()} for machine
+                                                in breakdowns_archived]
+
+            datas.append(items_breakdown)
+        print(datas)
+        return JsonResponse(datas, status=200, safe=False)
     else:
         return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
 
@@ -99,47 +145,54 @@ def gat_all_localisation(request):
     return JsonResponse(data, status=200, safe=False)
 
 
-def process_data(data, is_update=False):
-    matriculate = data.get('matriculate')
+def save_breakdown(machine, data, is_update=False):
     try:
-        machine = Machine.objects.get(matriculate=matriculate)
-        model = data.get('model')
-        if model:
-            machine.model = model
-            machine.save()
+        with transaction.atomic():
+            if is_update:
+                uid_name = 'uid_name'
+                if uid_name not in data:
+                    return JsonResponse({'error': 'UID du Breakdown manquant pour la mise à jour.'}, status=400)
 
-        if is_update:
-            breakdown = Breakdown.objects.get(uid=data.get('uid'))
-        else:
-            breakdown, _ = Breakdown.objects.get_or_create(machine=machine)
+                breakdown_uid = are_valid_uuids(data.get(uid_name))
+                breakdown = Breakdown.objects.get(uid=breakdown_uid, machine=machine, archived=False)
+            else:
+                if machine.has_active_breakdown():
+                    return JsonResponse({'error': 'Une machine ne peut avoir qu\'un seul Breakdown non archivé.'},
+                                        status=400)
 
-        for key, value in data.items():
-            key = str(key).replace('_name', '')
-            if key not in ['uid', 'client', 'matriculate', 'model']:
-                if key in ['start', 'end', 'enter', 'appointment', 'leave'] and value is not None:
-                    try:
-                        value = datetime.strptime(value, '%d/%m/%Y %H:%M:%S')
-                        setattr(breakdown, key, value)
-                    except :
-                        print(f"Erreur de conversion de date : {value}")
-                        pass
+                breakdown = Breakdown()
 
-                if key == 'localisation':
+            for key, value in data.items():
+                key = key.replace('_name', '')
+                if key not in ['uid', 'client', 'matriculate', 'localisation', 'model']:
+                    if key in ('start', 'leave', 'appointment', 'enter'):
+                        value = format_datetime(value)
+                    setattr(breakdown, key, value)
+
+                elif key == 'localisation':
                     localisation = Localisation.objects.filter(locality=value).first()
                     if localisation:
                         breakdown.localisation = localisation
                     else:
                         write_log('Localisation non trouvée.')
-                else:
-                    setattr(breakdown, key, value)
 
-                if key == 'client':
-                    print(value)
-                    client, _ = Client.objects.get_or_create(name__iexact=value)
-                    breakdown.client = client
-        breakdown.save()
-        write_log('Enregistrement terminé !')
-        return JsonResponse({'message': 'Données enregistrées avec succès.'}, status=201)
+                elif key == 'client':
+                    if value is not None and value.strip():  # Vérifiez si la valeur n'est pas vide
+                        client, _ = Client.objects.get_or_create(name__iexact=value)
+                        breakdown.client = client
+                    else:
+                        breakdown.client = None  # Assurez-vous que le champ client est vide si la valeur est vide
+
+            breakdown.machine = machine
+            breakdown.save()
+
+        machine.breakdown.add(breakdown)
+        machine.save()
+        write_log('Opération terminée !')
+        if is_update:
+            return JsonResponse({'message': 'Breakdown mis à jour avec succès.'}, status=200)
+        else:
+            return JsonResponse({'message': 'Breakdown ajouté avec succès.'}, status=201)
     except Machine.DoesNotExist:
         write_log('Machine introuvable.')
         return JsonResponse({'error': "Machine non trouvée."}, status=404)
@@ -147,8 +200,25 @@ def process_data(data, is_update=False):
         write_log('Breakdown introuvable.')
         return JsonResponse({'error': "Breakdown non trouvé."}, status=404)
     except Exception as e:
-        write_log('Erreur inattendue.')
+        write_log(f'Erreur inattendue : {str(e)}')
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@login_required
+def post_line(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            matriculate = data.get('matriculate')
+            machine = Machine.objects.get(matriculate=matriculate)
+            return save_breakdown(machine, data, is_update=False)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Format JSON invalide.'}, status=400)
+        except Machine.DoesNotExist:
+            write_log('Machine introuvable.')
+            return JsonResponse({'error': "Machine non trouvée."}, status=404)
+    return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
 
 
 @csrf_exempt
@@ -157,27 +227,14 @@ def update_line(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body.decode('utf-8'))
-            return process_data(data, is_update=True)
+            matriculate = data.get('matriculate')
+            machine = Machine.objects.get(matriculate=matriculate)
+            return save_breakdown(machine, data, is_update=True)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Format JSON invalide.'}, status=400)
-    return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
-
-
-@csrf_exempt
-@login_required
-def update_line(request):
-    if request.method == 'POST':
-        data = json.loads(request.body.decode('utf-8'))
-        return process_data(data, is_update=True)
-    return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)  # 405: Method Not Allowed
-
-
-@csrf_exempt
-@login_required
-def post_line(request):
-    if request.method == 'POST':
-        data = json.loads(request.body.decode('utf-8'))
-        return process_data(data)
+        except Machine.DoesNotExist:
+            write_log('Machine introuvable.')
+            return JsonResponse({'error': "Machine non trouvée."}, status=404)
     return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
 
 
@@ -185,10 +242,15 @@ def post_line(request):
 @login_required
 def delete_breakdown(request):
     if request.method == 'POST':
+        print(request.POST)
+
         breakdown_id = request.POST.get('breakdown_id')
         try:
             breakdown = Breakdown.objects.get(uid=breakdown_id)
-            breakdown.delete()
+            # breakdown.delete()
+            breakdown.archived = True
+            breakdown.save()
+            print("On a : {breakdown}".format(breakdown=breakdown))
             return JsonResponse({'success': True})
         except Breakdown.DoesNotExist:
             return JsonResponse({'error': 'Breakdown not found'}, status=404)
@@ -218,7 +280,7 @@ def get_all_companies(request):
 
 @login_required
 def get_all_machines_in_table(request):
-    machines_assigned = Breakdown.objects.values('machine__uid')
+    machines_assigned = Breakdown.objects.filter(archived=False).values('machine__uid')
     machines = Machine.objects.exclude(uid__in=Subquery(machines_assigned))
 
     machines_data = []
@@ -253,11 +315,12 @@ def get_all_breakdown(request):
 @login_required
 def get_all_matriculate(request):
     datas = []
-    machines_assigned = Breakdown.objects.values('machine__uid')
 
-    # Query to retrieve machines that are not yet assigned to breakdowns
-    machines = Machine.objects.exclude(uid__in=Subquery(machines_assigned))
-    for machine in machines:
+    machines_without_active_breakdown = Machine.objects.annotate(
+        active_breakdown_count=Count('breakdown', filter=Q(breakdown__archived=False))
+    ).filter(active_breakdown_count=0)
+
+    for machine in machines_without_active_breakdown:
         datas.append({'label': machine.matriculate, 'value': machine.matriculate})
     return JsonResponse(datas, safe=False)
 

@@ -15,6 +15,6 @@ urlpatterns = [
 
     path('delete-breakdown/', views.delete_breakdown, name='delete_breakdown'),
     path('get-machines/', views.get_machines, name='get_machines'),
-    path('get-breakdown/', views.get_breakdown, name='get_breakdown'),
+    path('get-breakdown/', views.get_all_machine_with_breakdown_false, name='get_breakdown'),
 
 ]

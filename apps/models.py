@@ -3,6 +3,9 @@ import json
 from django.db import models
 import uuid
 
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+
 
 class BaseModel(models.Model):
     uid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -19,15 +22,6 @@ class Company(BaseModel):
 
     def __str__(self):
         return self.name
-
-
-class Machine(BaseModel):
-    matriculate = models.CharField(max_length=100, unique=True)
-    model = models.CharField(max_length=150)
-    description = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.matriculate
 
 
 class Client(BaseModel):
@@ -55,8 +49,20 @@ class Localisation(BaseModel):
         ordering = ['commune', 'locality']
 
 
+class Machine(BaseModel):
+    matriculate = models.CharField(max_length=100, unique=True)
+    model = models.CharField(max_length=150)
+    description = models.TextField(blank=True)
+    breakdown = models.ManyToManyField('Breakdown', blank=True)
+
+    def __str__(self):
+        return self.matriculate
+
+    def has_active_breakdown(self):
+        return self.breakdown.filter(archived=False).exists()
+
+
 class Breakdown(BaseModel):
-    machine = models.ForeignKey('Machine', on_delete=models.CASCADE)
     localisation = models.ForeignKey('Localisation', on_delete=models.CASCADE, blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.CASCADE, blank=True, null=True)
     start = models.DateTimeField(blank=True, null=True, verbose_name='Start Breakdown')
@@ -64,6 +70,7 @@ class Breakdown(BaseModel):
     enter = models.DateTimeField(blank=True, null=True, verbose_name='Enter Garage')
     leave = models.DateTimeField(blank=True, null=True, verbose_name='Leave Garage')
     order = models.IntegerField(null=True, blank=True, verbose_name='Order Repair')
+    archived = models.BooleanField(default=False)
     works = models.TextField(blank=True, null=True, verbose_name='Work Request')
     prevision = models.TextField(blank=True, null=True, verbose_name='Exit Garage Prevision')
     piece = models.TextField(blank=True, null=True, verbose_name='Etat Piece')
@@ -73,4 +80,12 @@ class Breakdown(BaseModel):
     imports = models.TextField(blank=True, null=True, verbose_name='Commentaire Import')
 
     def __str__(self):
-        return f"{self.machine}"
+        return f"{self.created_at} | {self.client}"
+
+
+@receiver(pre_save, sender=Breakdown)
+def ensure_unique_active_breakdown(sender, instance, **kwargs):
+    if instance.archived is False:
+        existing_active_breakdowns = Breakdown.objects.filter(machine=instance.machine, archived=False)
+        if existing_active_breakdowns.exists():
+            existing_active_breakdowns.update(archived=True)

@@ -63,7 +63,7 @@
     <script type="text/javascript" src="{% static 'dist/js/tableexport.min.js' %}"></script>
     <script type="text/javascript">
         function textareaPopup(cell, onRendered, success, cancel) {
-              const modalId = `editCellModal-${cell.getData().uid}`;
+              const modalId = `editCellModal-${cell.getData().uid_name}`;
 
               const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
@@ -509,7 +509,13 @@
             height: "40vw",
             renderHorizontal: "virtual",
             resizableColumnGuide: true,
-            {#editTriggerEvent: "dblclick",#}
+            dataTree: true,
+            dataTreeStartExpanded: false,
+            dataTreeFilter:false,
+            dataTreeSort:false,
+            dataTreeSelectPropagate:true,
+            {#dataTreeCollapseElement:"<i class='fas fa-minus-square'></i>",#}
+            {#dataTreeChildField:"childRows",#}
             initialSort: [
                 {column: "matriculate", dir: "asc"},
             ],
@@ -540,7 +546,8 @@
                                 let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
                                 if (conf) {
                                     const rowData = cell.getRow().getData();
-                                    if (rowData.uid) {
+                                    console.log("UID: " + rowData.uid_name)
+                                    if (rowData.uid_name) {
                                         fetch("{% url 'apps:update_line' %}", {
                                             method: "POST",
                                             headers: {
@@ -1006,7 +1013,7 @@
                     download: false,
                     cellClick: function (e, cell) {
 
-                        let breakdownId = cell.getData().uid;
+                        let breakdownId = cell.getData().uid_name;
                         if (breakdownId) {
                             if (confirm("Est-vous sûr de vouloir supprimer ceci ?")) {
 

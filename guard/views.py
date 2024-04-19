@@ -109,38 +109,33 @@ def is_user_not_authenticated(user):
 
 
 class LoginLDAP(View):
-    @staticmethod
-    @user_passes_test(is_user_not_authenticated, login_url='apps:index')
-    def get(request):
-        forms = LoginForm
-        context = {
-            'form': forms,
-        }
+    def get(self, request):
+        forms = LoginForm()  # Instantiate the form
+        context = {'form': forms}
         return render(request, 'guard/login.html', context)
 
-    @staticmethod
-    def post(request):
+    def post(self, request):
         forms = LoginForm(request.POST)
         if forms.is_valid():
             username = forms.cleaned_data['username']
             password = forms.cleaned_data['password']
+
+            # Check if username is allowed for LDAP authentication
             if username not in ['admin.dev', 'user.dev', 'user.staff']:
                 connexion = ldap_login_connection(username=username, password=password)
                 if connexion:
                     try:
-                        user_get = CustomUser.objects.get(username__exact=username)
+                        user_get = CustomUser.objects.get(username=username)
                         if user_get.autoriser:
                             login(request, user_get)
                             return redirect('apps:index')
                         else:
-                            messages.error(request,
-                                           "Vous n'êtes pas encore autorisé à vous connecter à la plateforme Sage !")
-                            return redirect('guard:login')
-                    except Exception as e:
+                            messages.error(request, "Vous n'êtes pas encore autorisé à vous connecter.")
+                    except CustomUser.DoesNotExist:
+                        # Create user if not found in database
                         email = connexion.get('email', '')
                         lastname = connexion.get('lastname', '')
                         firstname = connexion.get('firstname', '')
-                        write_log(f"Erreur LoginLDAP : {str(e)}")
 
                         user_get = CustomUser(
                             username=username,
@@ -152,24 +147,19 @@ class LoginLDAP(View):
                             is_superuser=False
                         )
                         user_get.save()
-                        messages.success(request,
-                                         "Votre compte a été créé. Contactez le service Sage ou DSI pour valider votre "
-                                         "accès !")
-                        return redirect('guard:login')
-
+                        messages.success(request, "Votre compte a été créé.")
                 else:
                     messages.error(request, "Login ou Mot de passe Incorrect !")
-                    return redirect('guard:login')
             else:
                 user = authenticate(request, username=username, password=password)
                 if user is not None:
                     login(request, user)
-                    return redirect('apps:index')  # Redirect to dashboard or any desired URL
+                    return redirect('apps:index')
                 else:
                     messages.error(request, "Nom d'utilisateur ou mot de passe incorrect.")
         else:
             messages.error(request, "Le formulaire de connexion est invalide !")
-            return redirect('guard:login')
+        return redirect('guard:login')
 
 
 @login_required

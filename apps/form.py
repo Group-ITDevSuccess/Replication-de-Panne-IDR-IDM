@@ -28,7 +28,7 @@ class CompanyForm(forms.ModelForm):
 class MachineForm(forms.ModelForm):
     class Meta:
         model = Machine
-        fields = '__all__'
+        fields = ['matriculate', 'model', 'description']
         labels = {
             'matriculate': 'Matricule',
             'model': 'Model',
