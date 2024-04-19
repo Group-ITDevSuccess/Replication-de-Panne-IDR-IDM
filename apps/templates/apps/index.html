@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
 
     <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
+   
 {% endblock %}
 {% block content %}
     <main class="container-fluid mt-4">
@@ -142,6 +143,7 @@
 
             return textArea;
         }
+
         function uploadPiecePopup(cell, onRendered, success, cancel) {
             {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
             const uid = cell.getData().uid_name;
@@ -160,7 +162,6 @@
                             <div class="modal-body">
                                 <div class="container">
                                     <div id="uploader" class="uploader" style="width: 100%">
-
                                 </div>
                             </div>
                         </div>
@@ -173,6 +174,7 @@
 
             const modalElement = document.getElementById(modalId);
             $(modalElement).modal('show');
+          
             $(`.uploader`).initUploader({
                 destination:'{% url 'apps:upload_file' %}',
                 destinationParams: {
@@ -189,6 +191,7 @@
                 },
                 arguments: ''
             });
+
 
             return true;
         }
@@ -326,9 +329,9 @@
                 if (canTick) {
                     success(checkbox.checked);
                 } else {
-                    
+
                     checkbox.checked = false;
-                    
+
                 }
             });
 
