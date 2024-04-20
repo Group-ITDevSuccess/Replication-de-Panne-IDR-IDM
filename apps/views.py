@@ -10,11 +10,12 @@ from datetime import datetime, date
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction, IntegrityError
+from django.db.models.functions import Cast
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import F, Q, Subquery, Count
+from django.db.models import F, Q, Subquery, Count, FloatField
 from apps.form import MachineForm, ClientForm
 from apps.models import Machine, Breakdown, Localisation, Client, Jointe, Historic
 from utils.script import write_log, are_valid_uuids
@@ -375,15 +376,26 @@ def get_all_machines_in_table(request):
 @csrf_exempt
 @login_required
 def get_all_breakdown(request):
-    breakdowns = Breakdown.objects.exclude(localisation__isnull=True)
     data = []
-    for value in breakdowns:
-        data.append({
-            'name': f"{value.machine.matriculate}",
-            'lat': float(value.localisation.longitude),
-            'lon': float(value.localisation.latitude)
-        })
-    print(f"On a : {data}")
+
+    try:
+        breakdowns = Machine.objects.filter(breakdown__localisation__longitude__isnull=False,
+                                            breakdown__localisation__latitude__isnull=False,
+                                            breakdown__archived__exact=False).annotate(
+            name=F('breakdown__localisation__locality'),
+            lon=Cast(F('breakdown__localisation__longitude'), output_field=FloatField()),
+            lat=Cast(F('breakdown__localisation__latitude'), output_field=FloatField()),
+
+        ).values('matriculate', 'name', 'lon', 'lat')
+        print(breakdowns)
+        if breakdowns:
+            data = [{'name': f"{breakdown['matriculate']} ({breakdown['name']})", 'lon': float(breakdown['lon']),
+                     'lat': float(breakdown['lat'])} for breakdown in breakdowns]
+
+        print(f"On a : {data}")
+    except Exception as e:
+        print("Une erreur a survenue !")
+        write_log(str(e))
     return JsonResponse(data, safe=False)
 
 
@@ -443,6 +455,7 @@ def add_client(request):
     else:
         messages.warning(request, "Méthode non autorisée !")
     return redirect('apps:index')
+
 
 @csrf_exempt
 def delete_client(request, uid):

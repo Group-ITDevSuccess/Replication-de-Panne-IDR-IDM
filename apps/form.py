@@ -28,10 +28,11 @@ class ClientForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nom du client'}),
             'email': forms.EmailInput(
-                attrs={'class': 'form-control', 'placeholder': 'Email du client', 'required': False, }),
+                attrs={'class': 'form-control', 'placeholder': 'Email du client', 'required': 'true', }),
             'phone': forms.TextInput(
-                attrs={'class': 'form-control', 'placeholder': 'Téléphone du client', 'required': False, }),
+                attrs={'class': 'form-control', 'placeholder': 'Téléphone du client', 'required': 'true', }),
             'localisation': forms.Select(
-                attrs={'class': 'selectpicker', 'data-width': '150px', 'data-style': "btn-danger", 'required': False,
+                attrs={'class': 'selectpicker show-tick', 'data-size': 10, 'data-live-search': 'true',
+                       'data-width': '150px', 'data-style': "btn-danger", 'required': 'true',
                        'data-header': 'Localisation du client'}),
         }
