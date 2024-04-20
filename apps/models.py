@@ -18,9 +18,9 @@ class BaseModel(models.Model):
 
 
 class Client(BaseModel):
-    name = models.CharField(max_length=100, unique=True,blank=False)
+    name = models.CharField(max_length=100, unique=True, blank=False)
     email = models.EmailField(blank=True, null=True)
-    phone = models.CharField(max_length=25,blank=True, null=True)
+    phone = models.CharField(max_length=25, blank=True, null=True)
     localisation = models.ForeignKey('Localisation', on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):

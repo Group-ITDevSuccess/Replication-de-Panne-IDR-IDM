@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
 
     <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
-    <link rel="stylesheet" href="{% static 'fancy-file-uploader/fancy_fileupload.css' %}">
+    <link rel="stylesheet" href="{% static 'fancy-file-uploader/fancy_fileupload.css' %}"  type="text/css" media="all" >
 
 {% endblock %}
 {% block content %}
@@ -29,7 +29,7 @@
     {% endif %}
     <div class="mb-2">
         <div class="btn-group" role="group" aria-label="Actions">
-            
+
             {% if user.level_1 %}
 
             <form class="form-inline" method="post" action="{% url 'apps:create_machine' %}">
@@ -104,7 +104,7 @@
         function textareaPopup(cell, onRendered, success, cancel) {
             const uid = cell.getData().uid_name;
             const modalId = `editCellModal-${uid}`;
-    
+
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
                     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
@@ -126,17 +126,17 @@
                     </div>
                 </div>
             `;
-    
-    
+
+
             $('body').append(modalHtml);
-    
+
             const modalElement = document.getElementById(modalId);
-    
+
             $(modalElement).modal('show');
-    
+
             let textArea = document.getElementById(`cellValue-${uid}`);
             textArea.value = cell.getValue();
-    
+
             $(textArea).summernote({
                 placeholder: 'Enter text here...',
                 tabsize: 0.5,
@@ -157,22 +157,22 @@
                     file: false,
                 },
             });
-    
-    
-    
+
+
+
             const saveChangesBtn = document.getElementById(`saveChanges-${uid}`);
             saveChangesBtn.addEventListener("click", () => {
                 const newValue = $(textArea).summernote('code');
                 success(newValue);
                 $(modalElement).modal('hide');
             });
-    
+
             $(modalElement).on('hide.bs.modal', () => {
                 $(textArea).summernote('destroy');
                 cancel();
                 $(`#${modalId}`).remove();
             });
-    
+
             return textArea;
         }
 
@@ -225,6 +225,8 @@
                     },
                     maxfilesize : 100000000,
                     edit: true,
+                    success: true,
+                    error: "Erreur lors de Upload de ce Fichier",
                     accept: [
                         '.jpg', '.png', 'image/jpeg', 'image/png', // Images
                         '.pdf', 'application/pdf', // PDF
@@ -233,7 +235,7 @@
                         '.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // Feuilles de calcul Excel
                         '.ppt', '.pptx', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // Présentations PowerPoint
                     ],
-                    {#displayunits :'iec_windows',#}
+                    displayunits :'iec_windows',
 
                     retries: 5,
                     retrydelay: 500,
@@ -876,8 +878,21 @@
                             title: "CLIENT",
                             field: "client_name",
                             width: 125,
+                            editorParams: {
+                                placeholderEmpty: "Aucun Client",
+                                autocomplete: "true", allowEmpty: true, listOnEmpty: true,
+                                valuesURL: "{% url 'apps:get_all_client' %}",
+                                placeholderLoading: "Chargement...",
+                                formatter: function (value, data, cell) {
+                                    if (value && value.label) {
+                                        return value.label;
+                                    } else {
+                                        return "";
+                                    }
+                                }
+                            },
                             {% if user.level_1 %}
-                                editor: "input",
+                                editor: "list",
                             {% endif %}
                         },
                         {

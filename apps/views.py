@@ -9,7 +9,7 @@ from datetime import datetime, date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
@@ -403,6 +403,18 @@ def get_all_matriculate(request):
 
 @csrf_exempt
 @login_required
+def get_all_client(request):
+    datas = []
+
+    clients = Client.objects.all().order_by('name')
+
+    for machine in clients:
+        datas.append({'label': machine.name, 'value': machine.name})
+    return JsonResponse(datas, safe=False)
+
+
+@csrf_exempt
+@login_required
 def get_machines(request):
     machines = []
 
@@ -412,16 +424,27 @@ def get_machines(request):
     return JsonResponse(machines, safe=False)
 
 
+@csrf_exempt
 def add_client(request):
     if request.method == 'POST':
         form = ClientForm(request.POST)
         if form.is_valid():
-            form.save()
+            try:
+                form.save()
+                messages.success(request, "Client ajouté avec succès.")
+            except IntegrityError:
+                messages.error(request, "Un client avec ce nom existe déjà.")
+        else:
+            # Vérification spécifique pour le nom du client
+            if 'name' in form.errors:
+                messages.warning(request, "Un client avec ce nom existe déjà.")
+            else:
+                messages.error(request, "Formulaire invalide. Veuillez corriger les erreurs.")
     else:
-        messages.warning(request, "Methode non autoriser !")
+        messages.warning(request, "Méthode non autorisée !")
     return redirect('apps:index')
 
-
+@csrf_exempt
 def delete_client(request, uid):
     try:
         client = Client.objects.get(uid__exact=uid)
