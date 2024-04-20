@@ -5,13 +5,6 @@
 {% load humanize %}
 {% block title %}Home{% endblock %}
 {% block style %}
-    <link rel="stylesheet" href="{% static 'dist/css/codemirror.css' %}">
-    <link rel="stylesheet" href="{% static 'dist/css/monokai.css' %}">
-    <link rel="stylesheet" href="{% static 'dist/css/tableexport.min.css' %}">
-    <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
-
-    <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
-    <link rel="stylesheet" href="{% static 'fancy-file-uploader/fancy_fileupload.css' %}"  type="text/css" media="all" >
 
 {% endblock %}
 {% block content %}
@@ -76,31 +69,6 @@
 {% endblock %}
 {% block script %}
 
-
-    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/tiledwebmap.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/offline-exporting.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/accessibility.js"></script>
-
-
-    <script type="text/javascript" src="{% static 'tabulator/dist/js/tabulator.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'tabulator/dist/js/luxon.js' %}"></script>
-    <script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.umd.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'tabulator/dist/js/jspdf.plugin.autotable.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'tabulator/dist/js/xlsx.full.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'summernote/summernote-bs4.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'dist/js/codemirror.js' %}"></script>
-    <script type="text/javascript" src="{% static 'dist/js/xml.js' %}"></script>
-    <script type="text/javascript" src="{% static 'dist/js/formatting.js' %}"></script>
-    <script type="text/javascript" src="{% static 'dist/js/moment.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'dist/js/FileSaver.js' %}"></script>
-    <script type="text/javascript" src="{% static 'dist/js/tableexport.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'plupart/dist/5x5jqpi.js' %}"></script>
-    <script type="text/javascript" src="{% static 'fancy-file-uploader/jquery.ui.widget.js' %}"></script>
-    <script type="text/javascript" src="{% static 'fancy-file-uploader/jquery.fileupload.js' %}"></script>
-    <script type="text/javascript" src="{% static 'fancy-file-uploader/jquery.iframe-transport.js' %}"></script>
-    <script type="text/javascript" src="{% static 'fancy-file-uploader/jquery.fancy-fileupload.js' %}"></script>
 
     <script type="text/javascript">
         function textareaPopup(cell, onRendered, success, cancel) {
