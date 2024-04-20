@@ -2,7 +2,7 @@ from django.contrib import admin
 from import_export import resources, fields
 from import_export.admin import ImportExportModelAdmin
 
-from .models import Company, Machine, Client, Breakdown, Localisation
+from .models import Machine, Client, Breakdown, Localisation
 
 
 class LocalisationResource(resources.ModelResource):
@@ -35,7 +35,7 @@ company_fieldsets = (
 
 machine_fieldsets = (
     (None, {
-        'fields': ('matriculate', 'model', 'description', 'breakdown')
+        'fields': ('matriculate', 'model',  'breakdown')
     }),
     ('Dates', {
         'fields': ('created_at', 'updated_at'),
@@ -77,11 +77,6 @@ breakdown_fieldsets = (
 
 
 # Register models with custom fieldsets
-@admin.register(Company)
-class CompanyAdmin(admin.ModelAdmin):
-    fieldsets = company_fieldsets
-    readonly_fields = ('created_at', 'updated_at')
-
 
 @admin.register(Machine)
 class MachineAdmin(admin.ModelAdmin):

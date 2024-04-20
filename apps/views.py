@@ -7,10 +7,8 @@ import pytz
 
 from datetime import datetime, date
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.files.storage import FileSystemStorage
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -18,7 +16,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Q, Subquery, Count
 from apps.form import MachineForm
-from apps.models import Machine, Company, Breakdown, Localisation, Client, Jointe
+from apps.models import Machine, Breakdown, Localisation, Client, Jointe, Historic
 from utils.script import write_log, are_valid_uuids
 
 
@@ -71,18 +69,13 @@ def index(request):
 
 
 @csrf_exempt
+@login_required
 def upload_file(request):
     if request.method == 'POST' and request.FILES:
-        print(f"File: {request.FILES}")
-        # print(f"POST: {request.POST}")
-        # print(f"GET: {request.GET}")
-        # print(f"Data: {json.loads(request.body.decode('utf-8'))}")
-        # print(f"Data : {request}")
+
         try:
             uploaded_files = request.FILES.getlist('file', None)
-            print(uploaded_files)
             id_param = request.GET.get('id', None)
-            # print(f"ID récupéré : {id_param}")
             if uploaded_files is not None and id_param is not None:
                 breakdown = Breakdown.objects.get(uid__exact=id_param)
                 for uploaded_file in uploaded_files:
@@ -98,7 +91,8 @@ def upload_file(request):
                             destination.write(chunk)
 
                     # Créer l'objet Jointe et l'associer à Breakdown
-                    fichier = Jointe.objects.create(name=uploaded_file.name, fichier=new_filename)
+                    fichier = Jointe.objects.create(name=uploaded_file.name, fichier=new_filename,
+                                                    acteur=request.user.username)
                     breakdown.jointe.add(fichier)
 
                 breakdown.save()
@@ -113,20 +107,20 @@ def upload_file(request):
 def get_file_jointe(request):
     gets = json.loads(request.body.decode('utf-8'))
     uid = gets.get('uid', None)
+    page = gets.get('page', 0)
     datas = []
     if uid:
         try:
             breakdown = Breakdown.objects.get(uid__exact=uid)
-            jointe = breakdown.jointe.all().values('uid', 'name', 'fichier', 'created_at')
+            jointe = breakdown.jointe.all().values('uid', 'name', 'fichier', 'acteur', 'created_at')
             datas = [{key: format_value(value) for key, value in data.items()} for data in jointe]
         except Breakdown.DoesNotExist:
             print("Breakdown Introuvable !")
-    return JsonResponse({'data': datas}, status=200, safe=False)
+    return JsonResponse({'data': datas, 'last_page': page}, status=200, safe=False)
 
 
 @csrf_exempt
 def delete_jointe(request):
-
     try:
         # print(f"{request.POST}, {request.body}, {request.GET}")
         # gets = json.loads(request.body.decode('utf-8'))
@@ -223,7 +217,8 @@ def gat_all_localisation(request):
     return JsonResponse(data, status=200, safe=False)
 
 
-def save_breakdown(machine, data, is_update=False):
+def save_breakdown(acteur, machine, data, is_update=False):
+    historique = Historic()
     try:
         with transaction.atomic():
             if is_update:
@@ -233,6 +228,7 @@ def save_breakdown(machine, data, is_update=False):
 
                 breakdown_uid = are_valid_uuids(data.get(uid_name))
                 breakdown = Breakdown.objects.get(uid=breakdown_uid, machine=machine, archived=False)
+                action = 'add'
             else:
                 if machine.has_active_breakdown():
                     return JsonResponse({'error': 'Une machine ne peut avoir qu\'un seul Breakdown non archivé.'},
@@ -240,6 +236,7 @@ def save_breakdown(machine, data, is_update=False):
 
                 breakdown = Breakdown()
 
+                action = 'update'
             for key, value in data.items():
                 key = key.replace('_name', '')
                 if key not in ['uid', 'client', 'matriculate', 'localisation', 'model']:
@@ -262,10 +259,15 @@ def save_breakdown(machine, data, is_update=False):
                         breakdown.client = None  # Assurez-vous que le champ client est vide si la valeur est vide
 
             breakdown.machine = machine
+            historique.acteur = acteur
+            historique.action = action
+            historique.argument = json.dumps(data)
+            breakdown.historic.add(historique)
             breakdown.save()
 
         machine.breakdown.add(breakdown)
         machine.save()
+
         write_log('Opération terminée !')
         if is_update:
             return JsonResponse({'message': 'Breakdown mis à jour avec succès.'}, status=200)
@@ -288,9 +290,11 @@ def post_line(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body.decode('utf-8'))
+            print(f"Data post_line: {data}")
             matriculate = data.get('matriculate')
             machine = Machine.objects.get(matriculate=matriculate)
-            return save_breakdown(machine, data, is_update=False)
+
+            return save_breakdown(request.user.username, machine, data, is_update=False)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Format JSON invalide.'}, status=400)
         except Machine.DoesNotExist:
@@ -305,9 +309,10 @@ def update_line(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body.decode('utf-8'))
+            print(f"Data update_line: {data}")
             matriculate = data.get('matriculate')
             machine = Machine.objects.get(matriculate=matriculate)
-            return save_breakdown(machine, data, is_update=True)
+            return save_breakdown(request.user.username, machine, data, is_update=True)
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Format JSON invalide.'}, status=400)
         except Machine.DoesNotExist:
@@ -320,13 +325,12 @@ def update_line(request):
 @login_required
 def delete_breakdown(request):
     if request.method == 'POST':
-        print(request.POST)
-
         breakdown_id = request.POST.get('breakdown_id')
         try:
             breakdown = Breakdown.objects.get(uid=breakdown_id)
-            # breakdown.delete()
+            historique = Historic.objects.create(acteur=request.user.username, action='archive')
             breakdown.archived = True
+            breakdown.historic.add(historique)
             breakdown.save()
             print("On a : {breakdown}".format(breakdown=breakdown))
             return JsonResponse({'success': True})
@@ -345,15 +349,6 @@ def create_machine(request):
         else:
             messages.warning(request, "Formulaire Invalide !")
     return redirect('apps:index')
-
-
-@login_required
-def get_all_companies(request):
-    companies = Company.objects.all()
-    datas = []
-    for companie in companies:
-        datas.append({'label': companie.name, 'value': companie.name})
-    return JsonResponse(datas, safe=False)
 
 
 @login_required

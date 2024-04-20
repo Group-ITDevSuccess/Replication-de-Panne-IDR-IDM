@@ -1,5 +1,6 @@
 import json
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 import uuid
 
@@ -14,14 +15,6 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
-
-
-class Company(BaseModel):
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.name
 
 
 class Client(BaseModel):
@@ -52,7 +45,6 @@ class Localisation(BaseModel):
 class Machine(BaseModel):
     matriculate = models.CharField(max_length=100, unique=True)
     model = models.CharField(max_length=150)
-    description = models.TextField(blank=True)
     breakdown = models.ManyToManyField('Breakdown', blank=True)
 
     def __str__(self):
@@ -65,9 +57,20 @@ class Machine(BaseModel):
 class Jointe(BaseModel):
     name = models.CharField(max_length=255)
     fichier = models.FileField(upload_to='media/')
+    acteur = models.CharField(max_length=150, null=True, blank=True, editable=False)
 
     def __str__(self):
         return self.name
+
+
+class Historic(BaseModel):
+    acteur = models.CharField(max_length=150)
+    action = models.CharField(choices=(('add', 'Ajout'), ('update', 'Modification'), ('delete', 'Delete')),
+                              max_length=100, default='add')
+    argument = models.JSONField(null=True, blank=True)
+
+    def __str__(self):
+        return self.acteur
 
 
 class Breakdown(BaseModel):
@@ -87,7 +90,7 @@ class Breakdown(BaseModel):
     achats = models.TextField(blank=True, null=True, verbose_name='Commentaire Achats')
     imports = models.TextField(blank=True, null=True, verbose_name='Commentaire Import')
     jointe = models.ManyToManyField('Jointe', blank=True, verbose_name='Piece Jointe')
+    historic = models.ManyToManyField('Historic', blank=True, verbose_name='Historique Breakdown')
 
     def __str__(self):
         return f"{self.created_at} | {self.client}"
-
