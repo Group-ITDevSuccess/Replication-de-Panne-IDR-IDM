@@ -36,14 +36,13 @@ INSTALLED_APPS = [
     'admin_interface',
     'colorfield',
     'django.contrib.admin',
-    'django_select2',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'guard.apps.GuardConfig',
-    'apps.apps.AppsConfig',
+    'apps.idr_idm.apps.IdrIdmConfig',
     'django_browser_reload',
 
 ]

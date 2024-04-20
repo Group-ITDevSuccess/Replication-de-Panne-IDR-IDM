@@ -1,4 +1,3 @@
-import json
 import uuid
 
 from django.contrib import messages
@@ -128,7 +127,7 @@ class LoginLDAP(View):
                         user_get = CustomUser.objects.get(username=username)
                         if user_get.autoriser:
                             login(request, user_get)
-                            return redirect('apps:index')
+                            return redirect('idr_idm:index')
                         else:
                             messages.error(request, "Vous n'êtes pas encore autorisé à vous connecter.")
                     except CustomUser.DoesNotExist:
@@ -154,7 +153,7 @@ class LoginLDAP(View):
                 user = authenticate(request, username=username, password=password)
                 if user is not None:
                     login(request, user)
-                    return redirect('apps:index')
+                    return redirect('idr_idm:index')
                 else:
                     messages.error(request, "Nom d'utilisateur ou mot de passe incorrect.")
         else:
