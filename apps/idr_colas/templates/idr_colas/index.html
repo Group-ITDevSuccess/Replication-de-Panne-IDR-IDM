@@ -3,7 +3,7 @@
 
 {% load i18n %}
 {% load humanize %}
-{% block title %}Home{% endblock %}
+{% block title %}IDR COLAS{% endblock %}
 {% block style %}
 
 {% endblock %}
@@ -50,7 +50,7 @@
                 <button class="btn btn-info mr-2" id="history-undo"><i class="fas fa-undo-alt"></i></button>
                 <button class="btn btn-info mr-2" id="history-redo"><i class="fas fa-redo-alt"></i></button>
                 {% if user.level_1 %}
-                    <form class="form-inline" method="post" action="{% url 'idr_idm:create_machine' %}">
+                    <form class="form-inline" method="post" action="{% url 'idr_colas:create_machine' %}">
                         {% csrf_token %}
                         <div class="form-group mr-2">
                             {{ form_add_machine.matriculate }}
@@ -71,9 +71,230 @@
 {% endblock %}
 {% block script %}
     <script type="text/javascript">
+    function uploadPiecePopup(cell, onRendered, success, cancel) {
+        {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
+        const uid = cell.getData().uid_name;
+        if (uid) {
+            const modalId = `uploadCellModal-${uid}`;
+            const uploadPiece = `upload-${uid}`
+            const tablePiece = `piece-load-${uid}`
+            const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="${modalId}Label">Piece Jointe du ${cell.getData().matriculate}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <input id="${uploadPiece}" type="file" name="files" accept=".jpg, .png, .pdf, .txt, .doc, .docx, .xls, .xlsx, .ppt, .pptx, image/jpeg, image/png,text/plain, application/pdf, application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint" multiple>
+                                </div>
+                                <div class="col-6">
+                                    <div id="${tablePiece}"></div>
+                                </div>
+                            </div>
 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+
+            $('body').append(modalHtml);
+
+            const modalElement = document.getElementById(modalId);
+            $(modalElement).modal('show');
+
+            {#https://www.jqueryscript.net/form/Fancy-File-Uploader-jQuery.html#}
+            $(`#${uploadPiece}`).FancyFileUpload({
+                url: '{% url 'idr_colas:upload_file' %}',
+                params: {
+                     id: `${uid}`
+                },
+                maxfilesize : 100000000,
+                edit: true,
+                success: true,
+                error: "Erreur lors de Upload de ce Fichier",
+                accept: [
+                    '.jpg', '.png', 'image/jpeg', 'image/png', // Images
+                    '.pdf', 'application/pdf', // PDF
+                    '.txt', 'text/plain', // Fichiers texte
+                    '.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // Documents Word
+                    '.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // Feuilles de calcul Excel
+                    '.ppt', '.pptx', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // Présentations PowerPoint
+                ],
+                displayunits :'iec_windows',
+
+                retries: 5,
+                retrydelay: 500,
+                uploadcompleted: function(e, data) {
+
+                },
+
+            })
+
+             let pieces = new Tabulator(`#${tablePiece}`, {
+            ajaxURL: "{% url 'idr_colas:get_file_jointe' %}", //ajax URL
+            ajaxContentType: "json",
+            columnDefaults: {
+                tooltip: true,
+                headerHozAlign: "center",
+                editor: false,
+                resizable: "header",
+            },
+            persistence: {
+                sort: true,
+                filter: false,
+                {#columns: true,#}
+            },
+            headerSort: true,
+            history: true,
+            headerSortClickElement: 'icon',
+            selectableRangeClearCells: true,
+            columnHeaderVertAlign: "bottom",
+            ajaxConfig: "POST",
+            ajaxParams: {uid: uid},
+            success: function (data) {
+                if (data.status !== 200 && data.status !== 201) {
+                    // Display error message in alert and prevent tickCross change
+                    alert(data.error || "An error occurred while fetching data.");
+                    return; // Exit the function if there's an error
+                }
+                const piece = data.data;
+                console.log(data)
+                table.setData(piece);
+            },
+            progressiveLoad: "load",
+            progressiveLoadDelay: 200,
+            layout: "fitDataStretch",
+            height: "200px",
+            placeholder: "Aucun Pièce Jointe",
+            placeholderHeaderFilter: 'Aucun Pièce Jointe Correspondent',
+            rowHeight: 40,
+            resizableRows: true,
+            resizableRowGuide: true,
+            rowHeader: {
+                formatter: "rownum",
+                headerSort: false,
+                hozAlign: "center",
+                resizable: false,
+                frozen: true
+            },
+            columns: [
+                {title: "Titre", field: "name", headerSort: true, width: 100,},
+                {title: "Nom du Fichier", field: "fichier", headerSort: true, width: 100,},
+                {title: "Acteur", field: "acteur", headerSort: true, width: 100,},
+                {
+                    title: "Date",
+                    field: "created_at",
+                    hozAlign: "center",
+                    sorter: "date",
+                    headerSort: true,
+                    width: 125
+                },
+                {
+                    title: 'Action',
+                    formatter: function (cell, formatterParams) { //plain text value
+                        return "<i class='fa fa-trash-arrow-up'></i>";
+                    },
+                    headerSort: false,
+                    frozen: true,
+                    resizable: false,
+                    hozAlign: "center",
+                    download: false,
+                    cellClick: function (e, cell) {
+
+                        let fileId = cell.getData().uid;
+                        let user = ('{{ user.username }}' === cell.getData().acteur);
+                        if (fileId && user) {
+                            if (confirm("Est-vous sûr de vouloir supprimer ce piece jointe ceci ?")) {
+
+                                fetch("{% url 'idr_colas:delete_jointe' %}", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/x-www-form-urlencoded",
+                                        "X-CSRFToken": "{{ csrf_token }}"
+                                    },
+                                    body: new URLSearchParams({
+                                        'uid_breakdown': uid,
+                                        'uid_jointe': fileId,
+                                    })
+                                })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            pieces.deleteRow(cell.getRow());
+
+                                        } else {
+                                            console.error("Error deleting Breakdown:", data.error);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error("Error deleting Breakdown:", error);
+                                    });
+                            }
+
+                        } else {
+                            alert("Vous n'ête pas celui qui a uploader ce fichier")
+                        }
+
+                    }
+                }
+            ]
+        });
+
+
+            $(modalElement).on('hide.bs.modal', () => {
+                $(`#${modalId}`).remove();
+                {#reloadPage();#}
+
+            });
+            return true;
+        }
+        alert("Le panne doit etre enreigstrer d'abord !")
+        return false;
+    }
+        let tickCrossEditor = function (cell, onRendered, success, cancel) {
+            // Create the checkbox element
+            let checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "mt-3";
+
+            let currentValue = cell.getValue();
+            // Check if both matriculate and model fields are not empty
+            let canTick = cell.getRow().getData().matriculate;
+            // Set the checkbox state based on the current value and allowed state
+            checkbox.checked = currentValue === true && canTick;
+            checkbox.disabled = !canTick;
+            if (cell.getRow().getData().archived_status) {
+                checkbox.disabled = true
+                checkbox.checked = false
+            }
+
+            // Handle checkbox change event
+            checkbox.addEventListener("change", function () {
+                if (canTick) {
+                    success(checkbox.checked);
+                } else {
+
+                    checkbox.checked = false;
+
+                }
+            });
+
+            onRendered(function () {
+                cell.getElement().appendChild(checkbox);
+            });
+
+            return checkbox;
+        };
         let table = new Tabulator("#pannes", {
-            ajaxURL: "",
+            ajaxURL: "{% url 'idr_colas:get_breakdown' %}",
             ajaxContentType: "json",
             rowHeight: 40,
             resizableRows: true,
@@ -154,7 +375,7 @@
             {#dataTreeCollapseElement:"<i class='fas fa-minus-square'></i>",#}
             {#dataTreeChildField:"childRows",#}
             initialSort: [
-                {column: "matriculate", dir: "asc"},
+                {column: "month", dir: "asc"},
             ],
             placeholder: "Aucun Donnée",
             placeholderHeaderFilter: 'Aucun Donnée Correspondent',
@@ -184,7 +405,7 @@
                                 if (conf) {
                                     const rowData = cell.getRow().getData();
                                     if (rowData.uid_name) {
-                                        fetch("{% url 'idr_idm:update_line' %}", {
+                                        fetch("{% url 'idr_colas:update_line' %}", {
                                             method: "POST",
                                             headers: {
                                                 "Content-Type": "application/json"
@@ -210,7 +431,7 @@
                                                 cancel()
                                             });
                                     } else {
-                                        fetch("{% url 'idr_idm:post_line' %}", {
+                                        fetch("{% url 'idr_colas:post_line' %}", {
                                             method: "POST",
                                             headers: {
                                                 "Content-Type": "application/json"
@@ -250,25 +471,25 @@
                 {
                     title: "MOIS",
                     field: "month",
-                    width: 150,
+                    width: 75,
                     {% if user.level_1 %}
                         editor: "list",
                     {% endif %}
                     validator: "required",
                     editorParams: {
                         values: {
-                            "Jan": "Janvier",
-                            "Feb": "Février",
-                            "Mar": "Mars",
-                            "Apr": "Avril",
+                            "Janvier": "Janvier",
+                            "Fevrier": "Février",
+                            "Mars": "Mars",
+                            "Avril": "Avril",
                             "Mai": "Mai",
-                            "Jun": "Juin",
-                            "Jul": "Juillet",
-                            "Aug": "Août",
-                            "Sep": "Septembre",
-                            "Oct": "Octobre",
-                            "Nov": "Novembre",
-                            "Dec": "Decembre",
+                            "Juin": "Juin",
+                            "Juillet": "Juillet",
+                            "Aout": "Août",
+                            "Septembre": "Septembre",
+                            "Octobre": "Octobre",
+                            "Novembre": "Novembre",
+                            "Decembre": "Décembre",
                             clearable: true
                         }
                     }
@@ -277,22 +498,10 @@
                 {
                     title: "JDE",
                     field: "jde",
-                    width: 150,
+                    width: 125,
                     {% if user.level_1 %}
-                        editor: "list",
+                        editor: "input",
                     {% endif %}
-                    validator: "required",
-
-                    editorParams: {
-                        placeholderEmpty: "Aucun Machine Disponible",
-                        sort: "asc",
-                        valuesURL: "{% url 'idr_idm:get_all_matriculate' %}",
-                        placeholderLoading: "Chargement...",
-                    },
-                    headerPopupIcon: "<i class='fas fa-filter' title='Filter column'></i>",
-                    headerFilter: emptyHeaderFilter,
-                    headerPopup: headerPopupFormatter,
-                    headerFilterFunc: "like",
                 },
                 {
                     title: "Immat ou N° série",
@@ -302,17 +511,12 @@
                         editor: "list",
                     {% endif %}
                     validator: "required",
-
                     editorParams: {
                         placeholderEmpty: "Aucun Machine Disponible",
                         sort: "asc",
-                        valuesURL: "{% url 'idr_idm:get_all_matriculate' %}",
+                        valuesURL: "{% url 'idr_colas:get_all_matriculate' %}",
                         placeholderLoading: "Chargement...",
                     },
-                    headerPopupIcon: "<i class='fas fa-filter' title='Filter column'></i>",
-                    headerFilter: emptyHeaderFilter,
-                    headerPopup: headerPopupFormatter,
-                    headerFilterFunc: "like",
                 },
                 {
                     title: "Modèle / Remorque",
@@ -320,7 +524,6 @@
                     {% if user.level_1 %}
                         editor: "input",
                     {% endif %}
-
                     width: 150,
                 },
                 {
@@ -354,7 +557,7 @@
                     editorParams: {
                         placeholderEmpty: "Aucun Localisation",
                         autocomplete: "true", allowEmpty: true, listOnEmpty: true,
-                        valuesURL: "{% url 'idr_idm:gat_all_localisation' %}",
+                        valuesURL: "{% url 'idr_colas:gat_all_localisation' %}",
                         placeholderLoading: "Chargement...",
 
                         formatter: function (value, data, cell) {
@@ -414,7 +617,7 @@
                     title: "Nb Jours Immo",
                     width: 100,
                     editor: false,
-                    hozAlign: "right",
+                    hozAlign: "center",
                     download: true,
                     formatter: calculImmo,
                 },
@@ -451,7 +654,7 @@
                 },
                 {
                     title: "COMMENTAIRES",
-                    field: "decision",
+                    field: "commentaire",
                     {% if user.level_4 %}
                         editor: textareaPopup,
                     {% endif %}
@@ -473,23 +676,12 @@
                         return tempElement.textContent;
                     },
                 },
-                {
-                    title: "Actif / Non Actif",
-                    field: 'status',
-                    width: 100,
-                    editor: false,
-                    hozAlign: "center",
-                    formatter: stateLine,
-                    formatterParams: { // Define properties for conditional formatting
-                        activeBackgroundColor: "#90EE90", // Light green
-                        inactiveBackgroundColor: "#FFCDD2" // Light red
-                    },
-                    download: true,
-                },
+                
                 {
                     title: "Piece Jointe",
                     field: 'jointe_count',
                     frozen: true,
+                    width: 75,
                     formatter: function (cell, formatterParams) {
                         if (cell.getValue() > 0) {
                             return '<i class="fas fa-info-circle text-warning"></i>'
@@ -518,7 +710,7 @@
                         if (breakdownId && !archived) {
                             if (confirm("Est-vous sûr de vouloir archiver ceci ?")) {
 
-                                fetch("{% url 'idr_idm:delete_breakdown' %}", {
+                                fetch("{% url 'idr_colas:delete_breakdown' %}", {
                                     method: "POST",
                                     headers: {
                                         "Content-Type": "application/x-www-form-urlencoded",

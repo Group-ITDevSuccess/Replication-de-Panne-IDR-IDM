@@ -17,18 +17,18 @@ class MachineIdrColas(BaseModel):
 
 class BreakdownIdrColas(BaseModel):
     MONTH = [
-        ('Jan', 'January'),
-        ('Feb', 'February'),
-        ('Mar', 'March'),
-        ('Apr', 'April'),
+        ('Janvier', 'Janvier'),
+        ('Fevrier', 'Février'),
+        ('Mars', 'Mars'),
+        ('Avril', 'Avril'),
         ('Mai', 'Mai'),
-        ('Jun', 'June'),
-        ('Jul', 'July'),
-        ('Aug', 'August'),
-        ('Sep', 'September'),
-        ('Oct', 'October'),
-        ('Nov', 'Novembre'),
-        ('Dec', 'December')
+        ('Juin', 'Juin'),
+        ('Juillet', 'Juillet'),
+        ('Aout', 'Août'),
+        ('Septembre', 'Septembre'),
+        ('Octobre', 'October'),
+        ('Novembre', 'Novembre'),
+        ('Decembre', 'Décembre')
     ]
     month = models.CharField(choices=MONTH, null=True, blank=True, max_length=50)
     jde = models.CharField(choices=MONTH, null=True, blank=True, max_length=150)

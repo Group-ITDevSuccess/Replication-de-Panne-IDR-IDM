@@ -79,27 +79,31 @@ def upload_file(request):
             print(f"POST: {request.POST}, FILE: {request.FILES}, {uploaded_files}, {id_param}")
 
             if uploaded_files is not None and id_param is not None:
-                breakdown = BreakdownIdrIdm.objects.get(uid__exact=id_param)
-                for uploaded_file in uploaded_files:
-                    # Générer un UID unique pour le nom du fichier
-                    uid = str(uuid.uuid4())
-                    file_extension = os.path.splitext(uploaded_file.name)[1]
-                    new_filename = f"{uid}{file_extension}"
+                try:
+                    breakdown = BreakdownIdrIdm.objects.get(uid__exact=id_param)
+                    for uploaded_file in uploaded_files:
+                        # Générer un UID unique pour le nom du fichier
+                        uid = str(uuid.uuid4())
+                        file_extension = os.path.splitext(uploaded_file.name)[1]
+                        new_filename = f"{uid}{file_extension}"
 
-                    # Enregistrer le fichier dans le répertoire media
-                    filepath = os.path.join('media', new_filename)
-                    with open(filepath, 'wb') as destination:
-                        for chunk in uploaded_file.chunks():
-                            destination.write(chunk)
+                        # Enregistrer le fichier dans le répertoire media
+                        filepath = os.path.join('media', new_filename)
+                        with open(filepath, 'wb') as destination:
+                            for chunk in uploaded_file.chunks():
+                                destination.write(chunk)
 
-                    # Créer l'objet Jointe et l'associer à Breakdown
-                    fichier = Jointe.objects.create(name=uploaded_file.name, fichier=new_filename,
-                                                    acteur=request.user.username)
-                    breakdown.jointe.add(fichier)
+                        # Créer l'objet Jointe et l'associer à Breakdown
+                        fichier = Jointe.objects.create(name=uploaded_file.name, fichier=new_filename,
+                                                        acteur=request.user.username)
+                        breakdown.jointe.add(fichier)
 
-                breakdown.save()
+                    breakdown.save()
+                    return JsonResponse({'success': True}, status=201)
 
-            return JsonResponse({'success': True}, status=201)
+                except Exception as e:
+                    write_log(str(e))
+
         except KeyError:
             return JsonResponse({'error': 'No image uploaded'}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
