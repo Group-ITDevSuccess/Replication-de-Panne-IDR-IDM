@@ -15,7 +15,7 @@ from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Q, Subquery, Count
-from apps.form import MachineForm
+from apps.form import MachineForm, ClientForm
 from apps.models import Machine, Breakdown, Localisation, Client, Jointe, Historic
 from utils.script import write_log, are_valid_uuids
 
@@ -63,7 +63,7 @@ def index(request):
     context = {
         'path': request.path,
         'form_add_machine': MachineForm(),
-        'get_breakdown_url': ''
+        'form_add_client': ClientForm()
     }
     return render(request, 'apps/index.html', context)
 
@@ -72,10 +72,11 @@ def index(request):
 @login_required
 def upload_file(request):
     if request.method == 'POST' and request.FILES:
-
         try:
-            uploaded_files = request.FILES.getlist('file', None)
-            id_param = request.GET.get('id', None)
+            uploaded_files = request.FILES.getlist('files', None)
+            id_param = request.POST.get('id', None)
+            print(f"POST: {request.POST}, FILE: {request.FILES}, {uploaded_files}, {id_param}")
+
             if uploaded_files is not None and id_param is not None:
                 breakdown = Breakdown.objects.get(uid__exact=id_param)
                 for uploaded_file in uploaded_files:
@@ -160,12 +161,12 @@ def get_all_machine_with_breakdown_false(request):
             decision=F('breakdown__decision'),
             uid_name=F('breakdown__uid'),
             archived_status=F('breakdown__archived'),
-
+            jointe_count=Count('breakdown__jointe')
         ).values(
             'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
             'appointment', 'enter', 'order', 'leave',
             'works', 'prevision', 'piece', 'diagnostics',
-            'achats', 'imports', 'decision', 'archived_status'
+            'achats', 'imports', 'decision', 'archived_status', 'jointe_count'
         )
 
         breakdowns_list = [{key: format_value(value) for key, value in machine.items()} for machine in machines]
@@ -190,12 +191,12 @@ def get_all_machine_with_breakdown_false(request):
                 decision=F('breakdown__decision'),
                 uid_name=F('breakdown__uid'),
                 archived_status=F('breakdown__archived'),
-
+                jointe_count=Count('breakdown__jointe')
             ).values(
                 'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
                 'appointment', 'enter', 'order', 'leave',
                 'works', 'prevision', 'piece', 'diagnostics',
-                'achats', 'imports', 'decision', 'archived_status'
+                'achats', 'imports', 'decision', 'archived_status', 'jointe_count'
             )
             if breakdowns_archived:
                 items_breakdown['_children'] = [{key: format_value(value) for key, value in machine.items()} for machine
@@ -220,6 +221,13 @@ def gat_all_localisation(request):
 def save_breakdown(acteur, machine, data, is_update=False):
     historique = Historic()
     try:
+        # Code pour configurer historique
+        historique.acteur = acteur
+        action = 'update' if is_update else 'add'
+        historique.action = action
+        historique.argument = json.dumps(data)
+        historique.save()  # Sauvegarder historique avant de l'ajouter à breakdown.historic
+
         with transaction.atomic():
             if is_update:
                 uid_name = 'uid_name'
@@ -228,7 +236,6 @@ def save_breakdown(acteur, machine, data, is_update=False):
 
                 breakdown_uid = are_valid_uuids(data.get(uid_name))
                 breakdown = Breakdown.objects.get(uid=breakdown_uid, machine=machine, archived=False)
-                action = 'add'
             else:
                 if machine.has_active_breakdown():
                     return JsonResponse({'error': 'Une machine ne peut avoir qu\'un seul Breakdown non archivé.'},
@@ -236,7 +243,6 @@ def save_breakdown(acteur, machine, data, is_update=False):
 
                 breakdown = Breakdown()
 
-                action = 'update'
             for key, value in data.items():
                 key = key.replace('_name', '')
                 if key not in ['uid', 'client', 'matriculate', 'localisation', 'model']:
@@ -259,11 +265,8 @@ def save_breakdown(acteur, machine, data, is_update=False):
                         breakdown.client = None  # Assurez-vous que le champ client est vide si la valeur est vide
 
             breakdown.machine = machine
-            historique.acteur = acteur
-            historique.action = action
-            historique.argument = json.dumps(data)
-            breakdown.historic.add(historique)
-            breakdown.save()
+            breakdown.historic.add(historique)  # Ajouter historique à breakdown.historic
+            breakdown.save()  # Enregistrer breakdown
 
         machine.breakdown.add(breakdown)
         machine.save()
@@ -407,3 +410,22 @@ def get_machines(request):
     for machine in machines_qs:
         machines.append({'label': machine.matriculate, 'value': machine.matriculate})
     return JsonResponse(machines, safe=False)
+
+
+def add_client(request):
+    if request.method == 'POST':
+        form = ClientForm(request.POST)
+        if form.is_valid():
+            form.save()
+    else:
+        messages.warning(request, "Methode non autoriser !")
+    return redirect('apps:index')
+
+
+def delete_client(request, uid):
+    try:
+        client = Client.objects.get(uid__exact=uid)
+        client.delete()
+    except Client.DoesNotExist:
+        messages.warning(request, "Client Introuvable ")
+    return redirect('apps:index')

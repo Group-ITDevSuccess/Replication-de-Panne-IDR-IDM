@@ -11,46 +11,66 @@
     <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
 
     <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
+    <link rel="stylesheet" href="{% static 'fancy-file-uploader/fancy_fileupload.css' %}">
 
 {% endblock %}
 {% block content %}
     <main class="container-fluid mt-4">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
-                     role="alert">
-                    <strong>{{ message.tags|title }}!</strong> {{ message.message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            {% endfor %}
-        {% endif %}
-        <div class="mb-2">
-
-            <div class="form-inline my-2 my-lg-0">
-                <button class="btn btn-secondary mr-2" id="download-xlsx"><i class="fas fa-file-excel"></i></button>
-                <button class="btn btn-secondary mr-2" id="print-table"><i class="fas fa-print"></i></button>
-                <button class="btn btn-info mr-2" id="history-undo"><i class="fas fa-undo-alt"></i></button>
-                <button class="btn btn-info mr-2" id="history-redo"><i class="fas fa-redo-alt"></i></button>
-
-                {% if user.level_1 %}
-                    <form method="post" action="{% url 'apps:create_machine' %}">
-                        {% csrf_token %}
-                        {{ form_add_machine.matriculate }}
-                        {{ form_add_machine.model }}
-                        <button class="btn btn-warning my-2 my-sm-0" id="filter-submit" type="submit"><i
-                                class="fas fa-plus-circle"></i>
-                        </button>
-                    </form>
-                {% endif %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
+                 role="alert">
+                <strong>{{ message.tags|title }}!</strong> {{ message.message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
+        {% endfor %}
+    {% endif %}
+    <div class="mb-2">
+        <div class="btn-group" role="group" aria-label="Actions">
+            
+            {% if user.level_1 %}
 
+            <form class="form-inline" method="post" action="{% url 'apps:create_machine' %}">
+                {% csrf_token %}
+                <div class="form-group mr-2">
+                    {{ form_add_machine.matriculate }}
+                </div>
+                <div class="form-group mr-2">
+                    {{ form_add_machine.model }}
+                </div>
+                <button class="btn btn-warning mr-2" id="filter-submit" type="submit"><i
+                        class="fas fa-plus-circle"></i></button>
+            </form>
+            <button class="btn btn-secondary mr-2" id="download-xlsx"><i class="fas fa-file-excel"></i></button>
+            <button class="btn btn-secondary mr-2" id="print-table"><i class="fas fa-print"></i></button>
+            <button class="btn btn-info mr-2" id="history-undo"><i class="fas fa-undo-alt"></i></button>
+            <button class="btn btn-info mr-2" id="history-redo"><i class="fas fa-redo-alt"></i></button>
+            <form class="form-inline " method="post" action="{% url 'apps:add_client' %}">
+                {% csrf_token %}
+                <div class="form-group mr-2">
+                    {{ form_add_client.name }}
+                </div>
+                <div class="form-group mr-2">
+                    {{ form_add_client.phone }}
+                </div>
+                <div class="form-group mr-2">
+                    {{ form_add_client.email }}
+                </div>
+                <div class="form-group mr-2">
+                    {{ form_add_client.localisation }}
+                </div>
+                <button class="btn btn-info" id="filter-submit" type="submit"><i class="fas fa-plus-circle"></i>
+                </button>
+            </form>
+        {% endif %}
 
         </div>
-        <div id="pannes"></div>
+    </div>
+    <div id="pannes"></div>
 
-    </main>
+</main>
 {% endblock %}
 {% block script %}
 
@@ -75,6 +95,10 @@
     <script type="text/javascript" src="{% static 'dist/js/FileSaver.js' %}"></script>
     <script type="text/javascript" src="{% static 'dist/js/tableexport.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'plupart/dist/5x5jqpi.js' %}"></script>
+    <script type="text/javascript" src="{% static 'fancy-file-uploader/jquery.ui.widget.js' %}"></script>
+    <script type="text/javascript" src="{% static 'fancy-file-uploader/jquery.fileupload.js' %}"></script>
+    <script type="text/javascript" src="{% static 'fancy-file-uploader/jquery.iframe-transport.js' %}"></script>
+    <script type="text/javascript" src="{% static 'fancy-file-uploader/jquery.fancy-fileupload.js' %}"></script>
 
     <script type="text/javascript">
         function textareaPopup(cell, onRendered, success, cancel) {
@@ -158,6 +182,7 @@
             const uid = cell.getData().uid_name;
             if (uid) {
                 const modalId = `uploadCellModal-${uid}`;
+                const uploadPiece = `upload-${uid}`
                 const tablePiece = `piece-load-${uid}`
                 const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
@@ -172,9 +197,10 @@
                             <div class="modal-body">
                                 <div class="row">
                                     <div class="col-6">
-                                        <div id="uploader" class="uploader" style="width: 100%"></div>
+{#                                        <div id="uploader" class="uploader" style="width: 100%"></div>#}
+                                        <input id="${uploadPiece}" type="file" name="files" accept=".jpg, .png, .pdf, .txt, .doc, .docx, .xls, .xlsx, .ppt, .pptx, image/jpeg, image/png,text/plain, application/pdf, application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint" multiple>
                                     </div>
-                                    <div class="col-6 mt-3">
+                                    <div class="col-6">
                                         <div id="${tablePiece}"></div>
                                     </div>
                                 </div>
@@ -191,20 +217,32 @@
                 const modalElement = document.getElementById(modalId);
                 $(modalElement).modal('show');
 
-                $(`.uploader`).initUploader({
-                    destination: '{% url 'apps:upload_file' %}',
-                    destinationParams: {
-                        id: `${uid}`
+                {#https://www.jqueryscript.net/form/Fancy-File-Uploader-jQuery.html#}
+                $(`#${uploadPiece}`).FancyFileUpload({
+                    url: '{% url 'apps:upload_file' %}',
+                    params: {
+                         id: `${uid}`
                     },
-                    {#selectOpts: {a: 'jquery', b: 'script', c: 'net', d: 'auther', contentType: true},#}
-                    showDescription: true,
-                    fileLimit: 10,
-                    sizeLimit: 50,
-                    postFn: function () {
+                    maxfilesize : 100000000,
+                    edit: true,
+                    accept: [
+                        '.jpg', '.png', 'image/jpeg', 'image/png', // Images
+                        '.pdf', 'application/pdf', // PDF
+                        '.txt', 'text/plain', // Fichiers texte
+                        '.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // Documents Word
+                        '.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // Feuilles de calcul Excel
+                        '.ppt', '.pptx', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // Présentations PowerPoint
+                    ],
+                    {#displayunits :'iec_windows',#}
 
-                        $(modalElement).modal('hide');
+                    retries: 5,
+                    retrydelay: 500,
+                    uploadcompleted: function(e, data) {
+
                     },
-                });
+
+                })
+
                 let pieces = new Tabulator(`#${tablePiece}`, {
                     ajaxURL: "{% url 'apps:get_file_jointe' %}", //ajax URL
                     ajaxContentType: "json",
@@ -239,7 +277,7 @@
                     progressiveLoad: "load",
                     progressiveLoadDelay: 200,
                     layout: "fitDataStretch",
-                    height: "205px",
+                    height: "200px",
                     placeholder: "Aucun Pièce Jointe",
                     placeholderHeaderFilter: 'Aucun Pièce Jointe Correspondent',
                     rowHeight: 40,
@@ -315,7 +353,11 @@
                     ]
                 });
 
+                $(modalElement).on('hide.bs.modal', () => {
+                    $(`#${modalId}`).remove();
+                    reloadPage();
 
+                });
                 return true;
             }
             alert("Le panne doit etre enreigstrer d'abord !")
@@ -1194,10 +1236,19 @@
                 },
                 {
                     title: "Piece Jointe",
+                    field: 'jointe_count',
                     frozen: true,
+                    formatter: function (cell, formatterParams){
+                        if (cell.getValue() > 0){
+                            return '<i class="fas fa-info-circle text-warning mt-3"></i>'
+                        }
+                        return ''
+                    },
+                     hozAlign: "center",
                     {% if user.level_4 %}
                         editor: uploadPiecePopup,
                     {% endif %}
+
                 },
                 {
                     formatter: function (cell, formatterParams) { //plain text value
