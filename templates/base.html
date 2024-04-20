@@ -270,6 +270,726 @@
     $(function () {
         $('#id_company').selectpicker();
     });
+    function textareaPopup(cell, onRendered, success, cancel) {
+        const uid = cell.getData().uid_name;
+        const modalId = `editCellModal-${uid}`;
+
+        const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="${modalId}Label">Ajout ou Modification</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <textarea id="cellValue-${uid}" class="form-control"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                            <button type="button" class="btn btn-primary" id="saveChanges-${uid}">Sauvegarder</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+
+        $('body').append(modalHtml);
+
+        const modalElement = document.getElementById(modalId);
+
+        $(modalElement).modal('show');
+
+        let textArea = document.getElementById(`cellValue-${uid}`);
+        textArea.value = cell.getValue();
+
+        $(textArea).summernote({
+            placeholder: 'Enter text here...',
+            tabsize: 0.5,
+            height: 150,
+            codemirror: {
+                theme: 'monokai'
+            },
+            disableResizeEditor: true,
+            disableDragAndDrop: true,
+            toolbar: [
+                ['style', ['style']],
+                ['font', ['bold', 'italic', 'underline', 'clear']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', []],
+                ['view', ['fullscreen', 'codeview']],
+            ],
+            buttons: {
+                file: false,
+            },
+        });
+
+        const saveChangesBtn = document.getElementById(`saveChanges-${uid}`);
+        saveChangesBtn.addEventListener("click", () => {
+            const newValue = $(textArea).summernote('code');
+            success(newValue);
+            $(modalElement).modal('hide');
+        });
+
+        $(modalElement).on('hide.bs.modal', () => {
+            $(textArea).summernote('destroy');
+            cancel();
+            $(`#${modalId}`).remove();
+        });
+
+        return textArea;
+    }
+
+
+    function uploadPiecePopup(cell, onRendered, success, cancel) {
+        {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
+        const uid = cell.getData().uid_name;
+        if (uid) {
+            const modalId = `uploadCellModal-${uid}`;
+            const uploadPiece = `upload-${uid}`
+            const tablePiece = `piece-load-${uid}`
+            const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="${modalId}Label">Piece Jointe du ${cell.getData().matriculate}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <input id="${uploadPiece}" type="file" name="files" accept=".jpg, .png, .pdf, .txt, .doc, .docx, .xls, .xlsx, .ppt, .pptx, image/jpeg, image/png,text/plain, application/pdf, application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint" multiple>
+                                </div>
+                                <div class="col-6">
+                                    <div id="${tablePiece}"></div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+
+            $('body').append(modalHtml);
+
+            const modalElement = document.getElementById(modalId);
+            $(modalElement).modal('show');
+
+            {#https://www.jqueryscript.net/form/Fancy-File-Uploader-jQuery.html#}
+            $(`#${uploadPiece}`).FancyFileUpload({
+                url: '{% url 'idr_idm:upload_file' %}',
+                params: {
+                     id: `${uid}`
+                },
+                maxfilesize : 100000000,
+                edit: true,
+                success: true,
+                error: "Erreur lors de Upload de ce Fichier",
+                accept: [
+                    '.jpg', '.png', 'image/jpeg', 'image/png', // Images
+                    '.pdf', 'application/pdf', // PDF
+                    '.txt', 'text/plain', // Fichiers texte
+                    '.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // Documents Word
+                    '.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // Feuilles de calcul Excel
+                    '.ppt', '.pptx', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // Présentations PowerPoint
+                ],
+                displayunits :'iec_windows',
+
+                retries: 5,
+                retrydelay: 500,
+                uploadcompleted: function(e, data) {
+
+                },
+
+            })
+
+             let pieces = new Tabulator(`#${tablePiece}`, {
+            ajaxURL: "{% url 'idr_idm:get_file_jointe' %}", //ajax URL
+            ajaxContentType: "json",
+            columnDefaults: {
+                tooltip: true,
+                headerHozAlign: "center",
+                editor: false,
+                resizable: "header",
+            },
+            persistence: {
+                sort: true,
+                filter: false,
+                {#columns: true,#}
+            },
+            headerSort: true,
+            history: true,
+            headerSortClickElement: 'icon',
+            selectableRangeClearCells: true,
+            columnHeaderVertAlign: "bottom",
+            ajaxConfig: "POST",
+            ajaxParams: {uid: uid},
+            success: function (data) {
+                if (data.status !== 200 && data.status !== 201) {
+                    // Display error message in alert and prevent tickCross change
+                    alert(data.error || "An error occurred while fetching data.");
+                    return; // Exit the function if there's an error
+                }
+                const piece = data.data;
+                console.log(data)
+                table.setData(piece);
+            },
+            progressiveLoad: "load",
+            progressiveLoadDelay: 200,
+            layout: "fitDataStretch",
+            height: "200px",
+            placeholder: "Aucun Pièce Jointe",
+            placeholderHeaderFilter: 'Aucun Pièce Jointe Correspondent',
+            rowHeight: 40,
+            resizableRows: true,
+            resizableRowGuide: true,
+            rowHeader: {
+                formatter: "rownum",
+                headerSort: false,
+                hozAlign: "center",
+                resizable: false,
+                frozen: true
+            },
+            columns: [
+                {title: "Titre", field: "name", headerSort: true, width: 100,},
+                {title: "Nom du Fichier", field: "fichier", headerSort: true, width: 100,},
+                {title: "Acteur", field: "acteur", headerSort: true, width: 100,},
+                {
+                    title: "Date",
+                    field: "created_at",
+                    hozAlign: "center",
+                    sorter: "date",
+                    headerSort: true,
+                    width: 125
+                },
+                {
+                    title: 'Action',
+                    formatter: function (cell, formatterParams) { //plain text value
+                        return "<i class='fa fa-trash-arrow-up'></i>";
+                    },
+                    headerSort: false,
+                    frozen: true,
+                    resizable: false,
+                    hozAlign: "center",
+                    download: false,
+                    cellClick: function (e, cell) {
+
+                        let fileId = cell.getData().uid;
+                        let user = ('{{ user.username }}' === cell.getData().acteur);
+                        if (fileId && user) {
+                            if (confirm("Est-vous sûr de vouloir supprimer ce piece jointe ceci ?")) {
+
+                                fetch("{% url 'idr_idm:delete_jointe' %}", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/x-www-form-urlencoded",
+                                        "X-CSRFToken": "{{ csrf_token }}"
+                                    },
+                                    body: new URLSearchParams({
+                                        'uid_breakdown': uid,
+                                        'uid_jointe': fileId,
+                                    })
+                                })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            pieces.deleteRow(cell.getRow());
+
+                                        } else {
+                                            console.error("Error deleting Breakdown:", data.error);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error("Error deleting Breakdown:", error);
+                                    });
+                            }
+
+                        } else {
+                            alert("Vous n'ête pas celui qui a uploader ce fichier")
+                        }
+
+                    }
+                }
+            ]
+        });
+
+
+            $(modalElement).on('hide.bs.modal', () => {
+                $(`#${modalId}`).remove();
+                {#reloadPage();#}
+
+            });
+            return true;
+        }
+        alert("Le panne doit etre enreigstrer d'abord !")
+        return false;
+    }
+
+    let datetimeEditor = function (cell, onRendered, success, cancel, editorParams) {
+
+        let editor = document.createElement("input");
+
+        editor.setAttribute("type", "datetime");
+
+        //create and style input
+        editor.style.padding = "3px";
+        editor.style.width = "100%";
+        editor.style.boxSizing = "border-box";
+
+        //Set value of editor to the current value of the cell
+        editor.value = luxon.DateTime.fromFormat(cell.getValue(), "dd/MM/yyyy hh:mm").toFormat("yyyy-MM-dd hh:mm")
+
+        //set focus on the select box when the editor is selected (timeout allows for editor to be added to DOM)
+        onRendered(function () {
+            editor.focus();
+            editor.style.css = "100%";
+        });
+
+        //when the value has been set, trigger the cell to update
+        function successFunc() {
+            success(luxon.DateTime.fromFormat(cell.getValue(), "yyyy-MM-dd hh:mm").toFormat("dd/MM/yyyy hh:mm"));
+        }
+
+        editor.addEventListener("change", successFunc);
+        editor.addEventListener("blur", successFunc);
+
+        //return the editor element
+        return editor;
+    };
+
+    let minMaxFilterEditor = function (cell, onRendered, success, cancel, editorParams) {
+
+        let end;
+
+        let container = document.createElement("span");
+
+        //create and style inputs
+        let start = document.createElement("input");
+        start.setAttribute("type", "number");
+        start.setAttribute("placeholder", "Min");
+        start.setAttribute("min", 0);
+        start.setAttribute("max", 100);
+        start.style.padding = "4px";
+        start.style.width = "50%";
+        start.style.boxSizing = "border-box";
+
+        start.value = cell.getValue();
+
+        function buildValues() {
+            success({
+                start: start.value,
+                end: end.value,
+            });
+        }
+
+        function keypress(e) {
+            if (e.keyCode === 13) {
+                buildValues();
+            }
+
+            if (e.keyCode === 27) {
+                cancel();
+            }
+        }
+
+        end = start.cloneNode();
+        end.setAttribute("placeholder", "Max");
+
+        start.addEventListener("change", buildValues);
+        start.addEventListener("blur", buildValues);
+        start.addEventListener("keydown", keypress);
+
+        end.addEventListener("change", buildValues);
+        end.addEventListener("blur", buildValues);
+        end.addEventListener("keydown", keypress);
+
+
+        container.appendChild(start);
+        container.appendChild(end);
+
+        return container;
+    }
+
+
+
+
+    let tickCrossEditor = function (cell, onRendered, success, cancel) {
+        // Create the checkbox element
+        let checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "mt-3";
+
+        // Get the current value of the cell
+        let currentValue = cell.getValue();
+        // Check if both matriculate and model fields are not empty
+        let canTick = cell.getRow().getData().matriculate;
+        // Set the checkbox state based on the current value and allowed state
+        checkbox.checked = currentValue === true && canTick;
+        checkbox.disabled = !canTick;
+        if (cell.getRow().getData().archived_status) {
+            checkbox.disabled = true
+            checkbox.checked = false
+        }
+
+        // Handle checkbox change event
+        checkbox.addEventListener("change", function () {
+            if (canTick) {
+                success(checkbox.checked);
+            } else {
+
+                checkbox.checked = false;
+
+            }
+        });
+
+        onRendered(function () {
+            cell.getElement().appendChild(checkbox);
+        });
+
+        return checkbox;
+    };
+
+    let headerPopupFormatter = function (e, column, onRendered) {
+        let container = document.createElement("div");
+
+        let label = document.createElement("label");
+        label.innerHTML = "Filtre Colonne:";
+        label.style.display = "block";
+        label.style.fontSize = ".7em";
+
+        let input = document.createElement("input");
+        input.placeholder = "Chercher ...";
+        input.value = column.getHeaderFilterValue() || "";
+
+        input.addEventListener("keyup", (e) => {
+            column.setHeaderFilterValue(input.value);
+        });
+
+        container.appendChild(label);
+        container.appendChild(input);
+
+        return container;
+    }
+
+    let emptyHeaderFilter = function () {
+        return document.createElement("div");
+    }
+
+    let addRow = function () {
+        let newRowData = {};
+        table.addRow(newRowData, false);
+    }
+
+    function sendSelectedRows() {
+        let editedCells = table.getEditedCells();
+        let selectedRowsData = editedCells.filter(cell => {
+            let rowData = cell.getRow().getData();
+            return cell.getColumn().getField() === "tickCross" && rowData.tickCross === true;
+        }).map(cell => cell.getRow().getData());
+        fetch("", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(selectedRowsData)
+        }).then(response => response.json())
+            .then(data => {
+                // Handle the response from the backend (success/failure)
+                console.log("AJAX POST response:", data);
+            })
+            .catch(error => {
+                console.error("AJAX POST error:", error);
+            });
+    }
+
+    function uniqueCellFormatter(cell) {
+        let data = table.getData(); // Get all table data
+        let value = cell.getValue();
+
+        // Check if the value is unique
+        let isUnique = data.every(row => row.matriculate !== value || row === cell.getRow());
+
+        if (!isUnique) {
+            // Set a red border if the value is not unique
+            return {
+                border: "2px solid red"
+            };
+        }
+
+        // No border by default
+        return {};
+    }
+
+
+    function reloadPage() {
+        window.location.reload();
+    }
+
+    function formatDate(dateString) {
+        if (dateString && dateString.trim() !== '') {
+            dateString = dateString.split(' ')
+            const [day, month, year] = dateString[0].split('/');
+            return `${year}-${month}-${day}`;
+        }
+        return null;
+    }
+
+    function calculImmo(cell) {
+        const rowData = cell.getRow().getData();
+        const formattedStartDate = formatDate(rowData.start);
+
+        if (formattedStartDate) {
+            const startDate = new Date(formattedStartDate);
+            if (isNaN(startDate.getTime())) {
+                return "";
+            }
+
+            let today;
+            if (rowData.leave) {
+                today = new Date(formatDate(rowData.leave));
+            } else {
+                today = new Date();
+            }
+            const diffInMs = today.getTime() - startDate.getTime();
+
+
+            return Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+        }
+        return '';
+    }
+
+    function calculImmoReel(cell) {
+        const rowData = cell.getRow().getData();
+
+        const formattedStartDate = formatDate(rowData.start);
+        const formattedEndDate = formatDate(rowData.leave);
+
+        if (formattedStartDate && formattedEndDate) {
+            const startDate = new Date(formattedStartDate);
+            const endDate = new Date(formattedEndDate);
+            if (isNaN(startDate.getTime())) {
+                return "";
+            }
+            if (isNaN(endDate.getTime())) {
+                return "";
+            }
+
+            const diffInMs = endDate.getTime() - startDate.getTime();
+
+            return Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
+        }
+        return ''
+
+    }
+
+
+    function sanitizeHTML(value) {
+        const cleanText = DOMPurify.sanitize(value, {ALLOWED_TAGS: []});
+        const textWithoutTags = cleanText.replace(/<[^>]+>/g, '');
+        return textWithoutTags.trim();
+    }
+
+    let textareaAccessor = function (value, data, type, params, column) {
+        return sanitizeHTML(value);
+    }
+
+    function stateLine(cell, formatterParams) {
+        let rowData = cell.getRow().getData();
+        let rowStart = rowData.start;
+        let rowLeave = rowData.leave;
+
+        if (rowStart) {
+            if (rowLeave) {
+                return 'Active';
+            } else {
+                return 'Non Active';
+            }
+        } else {
+            return '';
+        }
+
+    }
+
+        document.getElementById("download-xlsx").addEventListener("click", function () {
+            table.download("xlsx", "panne " + new Date() + ".xlsx", {
+                sheetName: "Pannes",
+                documentStyles: true, // Utilisez les styles de votre document pour la feuille Excel
+                columnStyles: [{width: 100}, {width: 200}, {width: 150}, {width: 150}, {width: 100}, {width: 100}, {width: 100}, {width: 100}, {width: 100}, {width: 200}, {width: 100}, {width: 200}, {width: 200}, {width: 200}, {width: 100}, {width: 100}], // Définissez la largeur des colonnes
+                rowStyles: function (row) {
+                    // Définissez les styles des lignes individuelles si nécessaire
+                    return {
+                        font: {bold: true}, // Par exemple, rend les lignes en gras
+                    };
+                },
+                headerStyles: {
+                    fill: {
+                        fgColor: {rgb: "FF0000"}, // Couleur de fond pour les en-têtes
+                    },
+                    font: {color: {rgb: "FFFFFF"}}, // Couleur du texte pour les en-têtes
+                    border: {
+                        top: {style: "thin", color: {auto: 1}}, // Bordure supérieure
+                        bottom: {style: "thin", color: {auto: 1}}, // Bordure inférieure
+                        left: {style: "thin", color: {auto: 1}}, // Bordure gauche
+                        right: {style: "thin", color: {auto: 1}}, // Bordure droite
+                    },
+                },
+            });
+        });
+
+
+        document.getElementById("print-table").addEventListener("click", function () {
+            const printData = table.getData(true, false); // Obtenez les données sans le format
+            printData.forEach(row => {
+                // Nettoyez le contenu HTML dans chaque ligne
+                Object.keys(row).forEach(key => {
+                    row[key] = sanitizeHTML(row[key]);
+                });
+            });
+            table.print(false, true, printData);
+        });
+
+
+
+
+        //undo button
+        document.getElementById("history-undo").addEventListener("click", function () {
+            table.undo();
+        });
+
+        //redo button
+        document.getElementById("history-redo").addEventListener("click", function () {
+            table.redo();
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                document.getElementById('openModalBtn').addEventListener('click', function () {
+                    let myModal = new bootstrap.Modal(document.getElementById('chartModal'));
+                    myModal.show();
+
+                    function getAllData(urls) {
+                        return new Promise(function (resolve, reject) {
+                            let xhr = new XMLHttpRequest();
+                            xhr.open('GET', urls, true);  // Remplacez '/path/to/get_all_permission/' par l'URL réelle de votre vue Django
+                            xhr.onreadystatechange = function () {
+                                if (xhr.readyState === XMLHttpRequest.DONE) {
+                                    if (xhr.status === 200) {
+                                        let response = JSON.parse(xhr.responseText);
+                                        resolve(response);
+                                    } else {
+                                        reject(xhr.responseText);
+                                    }
+                                }
+                            };
+                            xhr.send();
+                        });
+                    }
+
+                    getAllData('{% url 'idr_idm:get_all_breakdown' %}').then(function (data) {
+                        let datas = JSON.parse(JSON.stringify(data))
+
+                        Highcharts.mapChart('container-map', {
+                            chart: {
+                                margin: 0
+                            },
+
+                            title: {
+                                text: ''
+                            },
+
+                            subtitle: {
+                                text: ''
+                            },
+
+                            navigation: {
+                                buttonOptions: {
+                                    align: 'left',
+                                    theme: {
+                                        stroke: '#e6e6e6'
+                                    }
+                                }
+                            },
+
+                            mapNavigation: {
+                                enabled: true,
+                                buttonOptions: {
+                                    alignTo: 'spacingBox'
+                                }
+                            },
+
+                            mapView: {
+                                center: [46.3927, -18.6174],
+                                zoom: 7
+                            },
+
+                            tooltip: {
+                                pointFormat: '{point.name}'
+                            },
+
+                            legend: {
+                                enabled: true,
+                                title: {
+                                    text: 'Map Engin en Pane'
+                                },
+                                align: 'left',
+                                symbolWidth: 20,
+                                symbolHeight: 20,
+                                itemStyle: {
+                                    textOutline: '1 1 1px rgba(255,255,255)'
+                                },
+                                backgroundColor: 'rgba(255,255,255,0.8)',
+                                float: true,
+                                borderColor: '#e6e6e6',
+                                borderWidth: 1,
+                                borderRadius: 2,
+                                itemMarginBottom: 5
+                            },
+
+                            plotOptions: {
+                                mappoint: {
+                                    dataLabels: {
+                                        enabled: false
+                                    }
+                                }
+                            },
+                            series: [{
+                                type: 'tiledwebmap',
+                                name: 'Engin en panne',
+                                provider: {
+                                    type: 'OpenStreetMap'
+                                },
+                                showInLegend: false
+                            }, {
+                                type: 'mappoint',
+                                name: 'Panne',
+                                marker: {
+                                    symbol: 'url(https://www.highcharts.com/samples/graphics/museum.svg)',
+                                    width: 24,
+                                    height: 24
+                                },
+                                data: datas
+                            },]
+                        });
+                    }).catch(function (error) {
+                        console.error(error);
+                    });
+                });
+
+            } catch (e) {
+
+            }
+
+        });
+
+
 </script>
 {% block script %}{% endblock %}
 </body>

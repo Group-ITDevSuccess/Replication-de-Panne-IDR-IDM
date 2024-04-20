@@ -17,8 +17,8 @@ urlpatterns = [
     path('idr-idm/delete-breakdown/', views.delete_breakdown, name='delete_breakdown'),
     path('idr-idm/get-machines/', views.get_machines, name='get_machines'),
     path('idr-idm/get-breakdown/', views.get_all_machineidridm_with_breakdown_false, name='get_breakdown'),
-    path('idr-idm/get-all-client/', views.get_all_client, name='get_all_client'),
-    path('idr-idm/add-client/', views.add_client, name='add_client'),
-    path('idr-idm/delete-client/<str:uid>/', views.delete_client, name='delete_client'),
+    path('get-all-client/', views.get_all_client, name='get_all_client'),
+    path('add-client/', views.add_client, name='add_client'),
+    path('delete-client/<str:uid>/', views.delete_client, name='delete_client'),
 
 ]
