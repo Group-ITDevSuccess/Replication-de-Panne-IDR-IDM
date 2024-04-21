@@ -94,23 +94,6 @@ def ldap_login_connection(username, password):
         return False
 
 
-def get_data(sql, conn, columns):
-    df = None
-    if sql is not None:
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute(sql)
-                rows = cursor.fetchall()
-
-                if rows:
-                    rows = [tuple(row) for row in rows]
-                    if all(isinstance(row, tuple) for row in rows):
-                        df = pd.DataFrame(rows, columns=columns)
-        except Exception as e:
-            write_log(f"Erreur execute_sql {sql} : {str(e)}")
-    return df
-
-
 def format_number(number):
     try:
         return '{:,.2f}'.format(float(number))
