@@ -25,31 +25,26 @@
 
                 <button class="btn btn-secondary mr-2" id="download-xlsx"><i class="fas fa-file-excel"></i></button>
                 <button class="btn btn-secondary mr-2" id="print-table"><i class="fas fa-print"></i></button>
-                <button type='button' class='btn btn-success btn-sm mr-2' id="openModalBtn"><i
-                        class='fas fa-map-location'></i></button>
-                {% if user.level_1 %}
-                    <form class="form-inline " method="post" action="{% url 'idr_idm:add_client' %}">
-                        {% csrf_token %}
-                        <div class="form-group mr-2">
-                            {{ form_add_client.name }}
-                        </div>
-                        <div class="form-group mr-2">
-                            {{ form_add_client.phone }}
-                        </div>
-                        <div class="form-group mr-2">
-                            {{ form_add_client.email }}
-                        </div>
-                        <div class="form-group mr-2">
-                            {{ form_add_client.localisation }}
-                        </div>
-                        <button class="btn btn-success mr-2" id="filter-submit" type="submit"><i
-                                class="fas fa-plus-circle"></i>
-                        </button>
-                    </form>
-                {% endif %}
+                <form class="form-inline " method="post" action="{% url 'idr_idm:add_client' %}">
+                    {% csrf_token %}
+                    <div class="form-group mr-2">
+                        {{ form_add_client.name }}
+                    </div>
+                    <div class="form-group mr-2">
+                        {{ form_add_client.phone }}
+                    </div>
+                    <div class="form-group mr-2">
+                        {{ form_add_client.email }}
+                    </div>
+                    <div class="form-group mr-2">
+                        {{ form_add_client.localisation }}
+                    </div>
+                    <button class="btn btn-success mr-2" id="filter-submit" type="submit"><i
+                            class="fas fa-plus-circle"></i>
+                    </button>
+                </form>
                 <button class="btn btn-info mr-2" id="history-undo"><i class="fas fa-undo-alt"></i></button>
                 <button class="btn btn-info mr-2" id="history-redo"><i class="fas fa-redo-alt"></i></button>
-                {% if user.level_1 %}
                     <form class="form-inline" method="post" action="{% url 'idr_colas:create_machine' %}">
                         {% csrf_token %}
                         <div class="form-group mr-2">
@@ -61,7 +56,6 @@
                         <button class="btn btn-warning mr-2" id="filter-submit" type="submit"><i
                                 class="fas fa-plus-circle"></i></button>
                     </form>
-                {% endif %}
 
             </div>
         </div>
@@ -79,30 +73,30 @@
             const uploadPiece = `upload-${uid}`
             const tablePiece = `piece-load-${uid}`
             const modalHtml = `
-            <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="${modalId}Label">Piece Jointe du ${cell.getData().matriculate}</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row">
-                                <div class="col-6">
-                                    <input id="${uploadPiece}" type="file" name="files" accept=".jpg, .png, .pdf, .txt, .doc, .docx, .xls, .xlsx, .ppt, .pptx, image/jpeg, image/png,text/plain, application/pdf, application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint" multiple>
-                                </div>
-                                <div class="col-6">
-                                    <div id="${tablePiece}"></div>
-                                </div>
+                <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">Piece Jointe du ${cell.getData().matriculate}</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
                             </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input id="${uploadPiece}" type="file" name="files" accept=".jpg, .png, .pdf, .txt, .doc, .docx, .xls, .xlsx, .ppt, .pptx, image/jpeg, image/png,text/plain, application/pdf, application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint" multiple>
+                                    </div>
+                                    <div class="col-6">
+                                        <div id="${tablePiece}"></div>
+                                    </div>
+                                </div>
 
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
 
 
             $('body').append(modalHtml);
@@ -338,8 +332,7 @@
                 }
             },
             rowHeader: {
-                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' {% if not user.level_1 %}
-                disabled{% endif %} onclick="addRow()"><i class='fas fa-plus'></i></button>`,
+                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()" ><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
                 resizable: false,
                 minWidth: 30,
@@ -393,7 +386,6 @@
                     frozen: true,
                     resizable: false,
                     hozAlign: "center",
-                    {% if user.level_1 or user.level_2 or user.level_3 or user.level_4 %}
                         formatter: "tickCross",
                         download: false,
                         editor: tickCrossEditor,
@@ -452,7 +444,6 @@
                                 }
                             }
                         }
-                    {% endif %}
 
                 },
                 {
@@ -472,9 +463,7 @@
                     title: "MOIS",
                     field: "month",
                     width: 75,
-                    {% if user.level_1 %}
                         editor: "list",
-                    {% endif %}
                     validator: "required",
                     editorParams: {
                         values: {
@@ -499,17 +488,13 @@
                     title: "JDE",
                     field: "jde",
                     width: 125,
-                    {% if user.level_1 %}
                         editor: "input",
-                    {% endif %}
                 },
                 {
                     title: "Immat ou N° série",
                     field: "matriculate",
                     width: 150,
-                    {% if user.level_1 %}
                         editor: "list",
-                    {% endif %}
                     validator: "required",
                     editorParams: {
                         placeholderEmpty: "Aucun Machine Disponible",
@@ -521,9 +506,7 @@
                 {
                     title: "Modèle / Remorque",
                     field: "model",
-                    {% if user.level_1 %}
                         editor: "input",
-                    {% endif %}
                     width: 150,
                 },
                 {
@@ -543,16 +526,12 @@
                             }
                         }
                     },
-                    {% if user.level_1 %}
                         editor: "list",
-                    {% endif %}
                 },
                 {
                     title: "Localisation",
                     field: "localisation_name",
-                    {% if user.level_1 %}
                         editor: "list",
-                    {% endif %}
                     hozAlign: 'right',
                     editorParams: {
                         placeholderEmpty: "Aucun Localisation",
@@ -575,9 +554,7 @@
                     field: "start",
                     width: 100,
                     sorter: "datetime",
-                    {% if user.level_1 %}
                         editor: "datetime",
-                    {% endif %}
                     editorParams: {
                         format: "dd/MM/yyyy hh:mm:ss",
                         verticalNavigation: "table",
@@ -589,9 +566,7 @@
                     field: "prevision",
                     sorter: "datetime",
                     width: 100,
-                    {% if user.level_1 %}
                         editor: "datetime",
-                    {% endif %}
 
                     editorParams: {
                         format: "dd/MM/yyyy hh:mm:ss",
@@ -605,9 +580,7 @@
                     field: "end",
                     sorter: "datetime",
                     width: 100,
-                    {% if user.level_1 %}
                         editor: "datetime",
-                    {% endif %}
                     editorParams: {
                         format: "dd/MM/yyyy hh:mm:ss",
                         verticalNavigation: "table",
@@ -624,9 +597,7 @@
                 {
                     title: "DEMANDE DE TRAVAUX",
                     field: "works",
-                    {% if user.level_1 %}
                         editor: textareaPopup,
-                    {% endif %}
 
                     width: 200,
                     formatter: function (cell, formatterParams) {
@@ -655,9 +626,7 @@
                 {
                     title: "COMMENTAIRES",
                     field: "commentaire",
-                    {% if user.level_4 %}
                         editor: textareaPopup,
-                    {% endif %}
                     accessorDownload: textareaAccessor,
 
                     width: 200,
@@ -689,9 +658,7 @@
                         return ''
                     },
                     hozAlign: "center",
-                    {% if user.level_4 %}
                         editor: uploadPiecePopup,
-                    {% endif %}
 
                 },
                 {

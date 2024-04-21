@@ -13,7 +13,6 @@ from django.db import transaction, IntegrityError
 from django.db.models.functions import Cast
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Q, Subquery, Count, FloatField
 
@@ -42,17 +41,14 @@ def upload_file(request):
         try:
             uploaded_files = request.FILES.getlist('files', None)
             id_param = request.POST.get('id', None)
-            print(f"POST: {request.POST}, FILE: {request.FILES}, {uploaded_files}, {id_param}")
 
             if uploaded_files is not None and id_param is not None:
                 breakdown = BreakdownIdrColas.objects.get(uid__exact=id_param)
                 for uploaded_file in uploaded_files:
-                    # Générer un UID unique pour le nom du fichier
                     uid = str(uuid.uuid4())
                     file_extension = os.path.splitext(uploaded_file.name)[1]
                     new_filename = f"{uid}{file_extension}"
 
-                    # Enregistrer le fichier dans le répertoire media
                     filepath = os.path.join('media', new_filename)
                     with open(filepath, 'wb') as destination:
                         for chunk in uploaded_file.chunks():
@@ -90,8 +86,6 @@ def get_file_jointe(request):
 @csrf_exempt
 def delete_jointe(request):
     try:
-        # print(f"{request.POST}, {request.body}, {request.GET}")
-        # gets = json.loads(request.body.decode('utf-8'))
         uid_breakdown = request.POST.get('uid_breakdown', None)
         uid_jointe = request.POST.get('uid_jointe', None)
         if uid_breakdown and uid_jointe:
@@ -109,7 +103,7 @@ def delete_jointe(request):
 
 @csrf_exempt
 @login_required
-def get_all_machineidrcolas_with_breakdown_false(request):
+def get_all_machine_idrcolas_with_breakdown_false(request):
     if request.method == 'GET':
         machines = MachineIdrColas.objects.filter(breakdown__archived=False, breakdown__isnull=False).annotate(
             localisation_name=F('breakdown__localisation__locality'),
@@ -173,8 +167,6 @@ def gat_all_localisation(request):
     return JsonResponse(data, status=200, safe=False)
 
 
-from django.contrib.auth.models import User  # Import the default User model if needed
-
 
 @csrf_exempt
 @login_required
@@ -201,7 +193,6 @@ def update_line(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body.decode('utf-8'))
-            print(f"Data update_line: {data}")
             matriculate = data.get('matriculate')
             machine = MachineIdrColas.objects.get(matriculate=matriculate)
             return save_breakdown(request.user.username, machine, data, is_update=True)
@@ -215,10 +206,8 @@ def update_line(request):
 
 def save_breakdown(acteur, machine, data, is_update=False):
     try:
-        # Check if it's an update or add action
         action = 'update' if is_update else 'add'
 
-        # Create and save Historic record
         historique = Historic(acteur=acteur, action=action, argument=json.dumps(data))
         historique.save()
 
@@ -237,7 +226,6 @@ def save_breakdown(acteur, machine, data, is_update=False):
 
                 breakdown = BreakdownIdrColas()
 
-            # Configure Breakdown data
             for key, value in data.items():
                 key = key.replace('_name', '')
                 if key not in ['uid', 'client', 'matriculate', 'localisation', 'model']:
@@ -311,7 +299,7 @@ def create_machine(request):
         if form.is_valid():
             form.save()
         else:
-            messages.warning(request, "Formulaire Invalide !")
+            messages.warning(request, "Le Machine avec cette matricule existe déja !")
     return redirect('idr_colas:index')
 
 

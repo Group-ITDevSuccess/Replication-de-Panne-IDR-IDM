@@ -31,7 +31,7 @@ class BreakdownIdrColas(BaseModel):
         ('Decembre', 'Décembre')
     ]
     month = models.CharField(choices=MONTH, null=True, blank=True, max_length=50)
-    jde = models.CharField(choices=MONTH, null=True, blank=True, max_length=150)
+    jde = models.CharField(null=True, blank=True, max_length=150)
     localisation = models.ForeignKey(Localisation, on_delete=models.CASCADE, blank=True, null=True)
     client = models.ForeignKey(Client, on_delete=models.CASCADE, blank=True, null=True)
     start = models.DateTimeField(blank=True, null=True, verbose_name='Start Breakdown')

@@ -251,7 +251,6 @@ def update_line(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body.decode('utf-8'))
-            print(f"Data update_line: {data}")
             matriculate = data.get('matriculate')
             machine = MachineIdrIdm.objects.get(matriculate=matriculate)
             return save_breakdown(request.user.username, machine, data, is_update=True)
@@ -361,7 +360,7 @@ def create_machine(request):
         if form.is_valid():
             form.save()
         else:
-            messages.warning(request, "Formulaire Invalide !")
+            messages.warning(request, "Le Machine avec cette matricule existe déja !")
     return redirect('idr_idm:index')
 
 

@@ -16,6 +16,6 @@ urlpatterns = [
     path('delete-file-jointe/', views.delete_jointe, name='delete_jointe'),
     path('delete-breakdown/', views.delete_breakdown, name='delete_breakdown'),
     path('get-machines/', views.get_machines, name='get_machines'),
-    path('get-breakdown/', views.get_all_machineidrcolas_with_breakdown_false, name='get_breakdown'),
+    path('get-breakdown/', views.get_all_machine_idrcolas_with_breakdown_false, name='get_breakdown'),
 
 ]
