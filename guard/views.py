@@ -19,7 +19,8 @@ from django.contrib.auth.decorators import user_passes_test
 
 @login_required
 def index(request):
-    print(request.user)
+    if not request.user.is_staff:
+        return redirect('idr_idm:index')
     context = {
         'path': request.path
     }

@@ -15,12 +15,14 @@
                 <a class="nav-link" href="{% url 'idr_idm:index' %}">IDR-IDM <span
                         class="sr-only">(current)</span></a>
             </li>
-            <li class="nav-item {% if path == '/idr-colas/' %}active{% endif %} disabled">
+            <li class="nav-item {% if path == '/idr-colas/' %}active{% endif %}">
                 <a class="nav-link" href="{% url 'idr_colas:index' %}" >IDR-COLAS</a>
             </li>
-            <li class="nav-item {% if path == '/accounts/administrations/' %}active{% endif %} {% if not user.is_staff %}disabled{% endif %}">
-                <a class="nav-link " href="{% url 'guard:index' %}" tabindex="-1">Administration</a>
-            </li>
+            {% if user.is_staff %}
+                <li class="nav-item {% if path == '/accounts/administrations/' %}active{% endif %} disabled" disabled>
+                    <a class="nav-link " href="{% url 'guard:index' %}" tabindex="-1" >Administration</a>
+                </li>
+            {% endif %}
         </ul>
         {% if path == '/' %}
             <div class="form-inline my-2 my-lg-0">
