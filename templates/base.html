@@ -266,6 +266,8 @@
 <script type="text/javascript" src="{% static 'highchart/exporting.js' %}"></script>
 <script type="text/javascript" src="{% static 'highchart/offline-exporting.js' %}"></script>
 <script type="text/javascript" src="{% static 'highchart/accessibility.js' %}"></script>
+{% block script %}{% endblock %}
+
 <script>
     $(function () {
         $('#id_company').selectpicker();
@@ -571,7 +573,8 @@
 
     }
 
-        document.getElementById("download-xlsx").addEventListener("click", function () {
+        try{
+            document.getElementById("download-xlsx").addEventListener("click", function () {
             table.download("xlsx", "panne " + new Date() + ".xlsx", {
                 sheetName: "Pannes",
                 documentStyles: true, // Utilisez les styles de votre document pour la feuille Excel
@@ -596,9 +599,7 @@
                 },
             });
         });
-
-
-        document.getElementById("print-table").addEventListener("click", function () {
+            document.getElementById("print-table").addEventListener("click", function () {
             const printData = table.getData(true, false); // Obtenez les données sans le format
             printData.forEach(row => {
                 // Nettoyez le contenu HTML dans chaque ligne
@@ -607,20 +608,28 @@
                 });
             });
             table.print(false, true, printData);
-        });
+             //undo button
+            document.getElementById("history-undo").addEventListener("click", function () {
+                table.undo();
+            });
+
+            //redo button
+            document.getElementById("history-redo").addEventListener("click", function () {
+                table.redo();
+            });
+
+         });
+        }catch (e) {
+          //
+        }
 
 
 
 
-        //undo button
-        document.getElementById("history-undo").addEventListener("click", function () {
-            table.undo();
-        });
 
-        //redo button
-        document.getElementById("history-redo").addEventListener("click", function () {
-            table.redo();
-        });
+
+
+
 
         document.addEventListener('DOMContentLoaded', function () {
             try {
@@ -744,6 +753,5 @@
 
 
 </script>
-{% block script %}{% endblock %}
 </body>
 </html>

@@ -36,7 +36,11 @@ def all_users_json(request):
         'is_staff', 'is_superuser',
     )
     data = list(users)
-    return JsonResponse(data, safe=False)
+    context = {
+        'Result': 'OK',
+        'Records': data
+    }
+    return JsonResponse(context, safe=False)
 
 
 @csrf_exempt
@@ -60,20 +64,20 @@ def update_user_json(request):
     if uid is not None:
         try:
             user = CustomUser.objects.get(uid__exact=uid)
-            value = request.POST.get('value')
-            if value == 'true':
-                value = True
-            elif value == 'false':
-                value = False
-            setattr(user, request.POST.get('key'), value)
+            for key, value in request.POST.items():
+                if value == 'true':
+                    value = True
+                elif value == 'false':
+                    value = False
+                setattr(user, key, value)
             user.save()
-            return JsonResponse({'success': 'User Modifier'}, status=201)
+            return JsonResponse({"Result": "OK"}, status=201)
 
         except CustomUser.DoesNotExist:
             message = "Utilisateur n'existe pas!"
         except Exception as e:
             write_log(str(e))
-    return JsonResponse({'error': message}, status=404)
+    return JsonResponse({"Result": "ERROR", "Message": message})
 
 
 @login_required
@@ -83,14 +87,27 @@ def create_user_json(request):
     try:
         user, created = CustomUser.objects.get_or_create(uid__exact=uid)
         if created:
+            for key, value in request.POST.items():
+                if value == 'true':
+                    value = True
+                elif value == 'false':
+                    value = False
+                setattr(user, key, value)
+            user.save()
             data = {
-                "id": user.uid,
+                "Result": "OK",
+                "Record": list(CustomUser.objects.filter(uid__exact=user.uid).annotate(id=F('uid')).values(
+                    'id', 'username', 'first_name', 'last_name', 'level_1', 'level_2', 'level_3', 'level_4',
+                    'autoriser',
+                    'is_active',
+                    'is_staff', 'is_superuser',
+                ))
             }
-            return JsonResponse({"success": True, "message": "Created new User", "data": data}, safe=False, status=201)
+            return JsonResponse(data, safe=False, status=201)
     except Exception as e:
         write_log(str(e))
 
-    return JsonResponse({"success": False, "message": "User already exists"}, safe=False)
+    return JsonResponse({"Result": "ERROR", "Message": "Erreur de création de l'utilisateur"}, safe=False)
 
 
 @login_required
@@ -100,8 +117,8 @@ def delete_user_json(request):
     if uids is not None:
         user = CustomUser.objects.get(uid__in=uids)
         user.delete()
-        return JsonResponse({"success": True, "message": "User Deleted", }, safe=False, status=201)
-    return JsonResponse({"success": False, "message": "User already exists"}, safe=False)
+        return JsonResponse({"Result": "OK"}, safe=False, status=201)
+    return JsonResponse({"Result": "ERROR", "Message": "Erreur de suppression de l'utilisateur"}, safe=False)
 
 
 def is_user_not_authenticated(user):
