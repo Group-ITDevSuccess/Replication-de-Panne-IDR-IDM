@@ -65,6 +65,33 @@
 {% endblock %}
 {% block script %}
     <script type="text/javascript">
+	function calculImmoReel(cell) {
+        const rowData = cell.getRow().getData();
+        const formattedStartDate = formatDate(rowData.start);
+
+        if (formattedStartDate) {
+            const startDate = new Date(formattedStartDate);
+            if (isNaN(startDate.getTime())) {
+                return "";
+            }
+
+            let today;
+            if (rowData.end) {
+                today = new Date(formatDate(rowData.end));
+				if (isNaN(today.getTime())) {
+					return new Date();
+				}
+            } else {
+                today = new Date();
+            }
+            const diffInMs = today.getTime() - startDate.getTime();
+
+
+            return Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
+        }
+        return '';
+
+    }
     function uploadPiecePopup(cell, onRendered, success, cancel) {
         {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
         const uid = cell.getData().uid_name;
@@ -592,7 +619,7 @@
                     editor: false,
                     hozAlign: "center",
                     download: true,
-                    formatter: calculImmo,
+                    formatter: calculImmoReel,
                 },
                 {
                     title: "DEMANDE DE TRAVAUX",
@@ -645,12 +672,12 @@
                         return tempElement.textContent;
                     },
                 },
-                
+
                 {
                     title: "Piece Jointe",
                     field: 'jointe_count',
-                    frozen: true,
-                    width: 75,
+
+                    width: 100,
                     formatter: function (cell, formatterParams) {
                         if (cell.getValue() > 0) {
                             return '<i class="fas fa-info-circle text-warning"></i>'
