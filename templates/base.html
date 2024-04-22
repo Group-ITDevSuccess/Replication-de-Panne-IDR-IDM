@@ -541,29 +541,7 @@
         return '';
     }
 
-    function calculImmoReel(cell) {
-        const rowData = cell.getRow().getData();
 
-        const formattedStartDate = formatDate(rowData.start);
-        const formattedEndDate = formatDate(rowData.leave);
-
-        if (formattedStartDate && formattedEndDate) {
-            const startDate = new Date(formattedStartDate);
-            const endDate = new Date(formattedEndDate);
-            if (isNaN(startDate.getTime())) {
-                return "";
-            }
-            if (isNaN(endDate.getTime())) {
-                return "";
-            }
-
-            const diffInMs = endDate.getTime() - startDate.getTime();
-
-            return Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
-        }
-        return ''
-
-    }
 
 
     function sanitizeHTML(value) {
