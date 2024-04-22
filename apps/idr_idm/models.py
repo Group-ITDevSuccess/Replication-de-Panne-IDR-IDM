@@ -81,6 +81,8 @@ class BreakdownIdrIdm(BaseModel):
     enter = models.DateTimeField(blank=True, null=True, verbose_name='Enter Garage')
     leave = models.DateTimeField(blank=True, null=True, verbose_name='Leave Garage')
     order = models.IntegerField(null=True, blank=True, verbose_name='Order Repair')
+    km_enter = models.FloatField(null=True, blank=True, verbose_name='Km/h Entrer')
+    km_exit = models.FloatField(null=True, blank=True, verbose_name='Kùm:h Sortie')
     archived = models.BooleanField(default=False)
     works = models.TextField(blank=True, null=True, verbose_name='Work Request')
     prevision = models.TextField(blank=True, null=True, verbose_name='Exit Garage Prevision')

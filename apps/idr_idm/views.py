@@ -155,6 +155,8 @@ def get_all_machineidridm_with_breakdown_false(request):
             appointment=F('breakdown__appointment'),
             enter=F('breakdown__enter'),
             order=F('breakdown__order'),
+            km_enter=F('breakdown__km_enter'),
+            km_exit=F('breakdown__km_exit'),
             start=F('breakdown__start'),
             leave=F('breakdown__leave'),
             works=F('breakdown__works'),
@@ -171,7 +173,7 @@ def get_all_machineidridm_with_breakdown_false(request):
             'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
             'appointment', 'enter', 'order', 'leave',
             'works', 'prevision', 'piece', 'diagnostics',
-            'achats', 'imports', 'decision', 'archived_status', 'jointe_count'
+            'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
         )
 
         breakdowns_list = [{key: format_value(value) for key, value in machine.items()} for machine in machines]
@@ -185,6 +187,8 @@ def get_all_machineidridm_with_breakdown_false(request):
                 appointment=F('breakdown__appointment'),
                 enter=F('breakdown__enter'),
                 order=F('breakdown__order'),
+                km_enter=F('breakdown__km_enter'),
+                km_exit=F('breakdown__km_exit'),
                 start=F('breakdown__start'),
                 leave=F('breakdown__leave'),
                 works=F('breakdown__works'),
@@ -201,7 +205,7 @@ def get_all_machineidridm_with_breakdown_false(request):
                 'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
                 'appointment', 'enter', 'order', 'leave',
                 'works', 'prevision', 'piece', 'diagnostics',
-                'achats', 'imports', 'decision', 'archived_status', 'jointe_count'
+                'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
             )
             if breakdowns_archived:
                 items_breakdown['_children'] = [{key: format_value(value) for key, value in machine.items()} for machine
