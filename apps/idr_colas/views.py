@@ -279,7 +279,7 @@ def delete_breakdown(request):
             breakdown.archived = True
             breakdown.historic.add(historique)
             breakdown.save()
-            print("On a : {breakdown}".format(breakdown=breakdown))
+            # print("On a : {breakdown}".format(breakdown=breakdown))
             return JsonResponse({'success': True})
         except BreakdownIdrColas.DoesNotExist:
             return JsonResponse({'error': 'Breakdown not found'}, status=404)

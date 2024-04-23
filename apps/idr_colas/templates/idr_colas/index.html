@@ -45,17 +45,17 @@
                 </form>
                 <button class="btn btn-info mr-2" id="history-undo"><i class="fas fa-undo-alt"></i></button>
                 <button class="btn btn-info mr-2" id="history-redo"><i class="fas fa-redo-alt"></i></button>
-                    <form class="form-inline" method="post" action="{% url 'idr_colas:create_machine' %}">
-                        {% csrf_token %}
-                        <div class="form-group mr-2">
-                            {{ form_add_machine.matriculate }}
-                        </div>
-                        <div class="form-group mr-2">
-                            {{ form_add_machine.model }}
-                        </div>
-                        <button class="btn btn-warning mr-2" id="filter-submit" type="submit"><i
-                                class="fas fa-plus-circle"></i></button>
-                    </form>
+                <form class="form-inline" method="post" action="{% url 'idr_colas:create_machine' %}">
+                    {% csrf_token %}
+                    <div class="form-group mr-2">
+                        {{ form_add_machine.matriculate }}
+                    </div>
+                    <div class="form-group mr-2">
+                        {{ form_add_machine.model }}
+                    </div>
+                    <button class="btn btn-warning mr-2" id="filter-submit" type="submit"><i
+                            class="fas fa-plus-circle"></i></button>
+                </form>
 
             </div>
         </div>
@@ -65,34 +65,34 @@
 {% endblock %}
 {% block script %}
     <script type="text/javascript">
-	function calculImmoReel(cell) {
-        const rowData = cell.getRow().getData();
-        const formattedStartDate = formatDate(rowData.start);
+        function calculImmoReel(cell) {
+            const rowData = cell.getRow().getData();
+            const formattedStartDate = formatDate(rowData.start);
 
-        if (formattedStartDate) {
-            const startDate = new Date(formattedStartDate);
-            if (isNaN(startDate.getTime())) {
-                return "";
+            if (formattedStartDate) {
+                const startDate = new Date(formattedStartDate);
+                if (isNaN(startDate.getTime())) {
+                    return "";
+                }
+
+                let today;
+                if (rowData.end) {
+                    today = new Date(formatDate(rowData.end));
+                    if (isNaN(today.getTime())) {
+                        return new Date();
+                    }
+                } else {
+                    today = new Date();
+                }
+                const diffInMs = today.getTime() - startDate.getTime();
+
+
+                return Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
             }
+            return '';
 
-            let today;
-            if (rowData.end) {
-                today = new Date(formatDate(rowData.end));
-				if (isNaN(today.getTime())) {
-					return new Date();
-				}
-            } else {
-                today = new Date();
-            }
-            const diffInMs = today.getTime() - startDate.getTime();
-
-
-            return Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
         }
-        return '';
-
-    }
-    function uploadPiecePopup(cell, onRendered, success, cancel) {
+        function uploadPiecePopup(cell, onRendered, success, cancel) {
         {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
         const uid = cell.getData().uid_name;
         if (uid) {
@@ -413,64 +413,64 @@
                     frozen: true,
                     resizable: false,
                     hozAlign: "center",
-                        formatter: "tickCross",
-                        download: false,
-                        editor: tickCrossEditor,
-                        headerSort: false,
-                        cellEdited: function (cell, onRendered, success, cancel) {
-                            let edited = cell.isEdited();
-                            if (edited) {
-                                let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
-                                if (conf) {
-                                    const rowData = cell.getRow().getData();
-                                    if (rowData.uid_name) {
-                                        fetch("{% url 'idr_colas:update_line' %}", {
-                                            method: "POST",
-                                            headers: {
-                                                "Content-Type": "application/json"
-                                            },
-                                            body: JSON.stringify(rowData)
+                    formatter: "tickCross",
+                    download: false,
+                    editor: tickCrossEditor,
+                    headerSort: false,
+                    cellEdited: function (cell, onRendered, success, cancel) {
+                        let edited = cell.isEdited();
+                        if (edited) {
+                            let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
+                            if (conf) {
+                                const rowData = cell.getRow().getData();
+                                if (rowData.uid_name) {
+                                    fetch("{% url 'idr_colas:update_line' %}", {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json"
+                                        },
+                                        body: JSON.stringify(rowData)
+                                    })
+                                        .then(response => {
+                                            if (!response.ok) {
+                                                return response.json().then(data => {
+                                                    alert(data.error);
+                                                    throw new Error(data.error); // Throw an error to stop further processing
+                                                });
+                                            }
+                                            return response.json(); // Parse the JSON response for successful requests
                                         })
-                                            .then(response => {
-                                                if (!response.ok) {
-                                                    return response.json().then(data => {
-                                                        alert(data.error);
-                                                        throw new Error(data.error); // Throw an error to stop further processing
-                                                    });
-                                                }
-                                                return response.json(); // Parse the JSON response for successful requests
-                                            })
-                                            .then(data => {
-                                                if (data.success) {
-                                                    cell.getRow().update(rowData);
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error("Error updating breakdown:", error);
-                                                cancel()
-                                            });
-                                    } else {
-                                        fetch("{% url 'idr_colas:post_line' %}", {
-                                            method: "POST",
-                                            headers: {
-                                                "Content-Type": "application/json"
-                                            },
-                                            body: JSON.stringify(rowData)
+                                        .then(data => {
+                                            if (data.success) {
+                                                cell.getRow().update(rowData);
+                                            }
                                         })
-                                            .then(response => {
-                                                if (response.status === 409) {
-                                                    return response.json().then(data => {
-                                                        alert(data.error);
-                                                        location.reload();
-                                                    });
-                                                }
-                                                return response.json(); // Parser la réponse JSON pour les requêtes réussies
-                                            })
+                                        .catch(error => {
+                                            console.error("Error updating breakdown:", error);
+                                            cancel()
+                                        });
+                                } else {
+                                    fetch("{% url 'idr_colas:post_line' %}", {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json"
+                                        },
+                                        body: JSON.stringify(rowData)
+                                    })
+                                        .then(response => {
+                                            if (response.status === 409) {
+                                                return response.json().then(data => {
+                                                    alert(data.error);
+                                                    location.reload();
+                                                });
+                                            }
+                                            return response.json(); // Parser la réponse JSON pour les requêtes réussies
+                                        })
 
-                                    }
                                 }
                             }
                         }
+                    }
 
                 },
                 {
@@ -490,7 +490,7 @@
                     title: "MOIS",
                     field: "month",
                     width: 75,
-                        editor: "list",
+                    editor: "list",
                     validator: "required",
                     editorParams: {
                         values: {
@@ -515,13 +515,13 @@
                     title: "JDE",
                     field: "jde",
                     width: 125,
-                        editor: "input",
+                    editor: "input",
                 },
                 {
                     title: "Immat ou N° série",
                     field: "matriculate",
                     width: 150,
-                        editor: "list",
+                    editor: "list",
                     validator: "required",
                     editorParams: {
                         placeholderEmpty: "Aucun Machine Disponible",
@@ -553,12 +553,12 @@
                             }
                         }
                     },
-                        editor: "list",
+                    editor: "list",
                 },
                 {
                     title: "Localisation",
                     field: "localisation_name",
-                        editor: "list",
+                    editor: "list",
                     hozAlign: 'right',
                     editorParams: {
                         placeholderEmpty: "Aucun Localisation",
@@ -581,7 +581,7 @@
                     field: "start",
                     width: 100,
                     sorter: "datetime",
-                        editor: "datetime",
+                    editor: "datetime",
                     editorParams: {
                         format: "dd/MM/yyyy hh:mm:ss",
                         verticalNavigation: "table",
@@ -593,7 +593,7 @@
                     field: "prevision",
                     sorter: "datetime",
                     width: 100,
-                        editor: "datetime",
+                    editor: "datetime",
 
                     editorParams: {
                         format: "dd/MM/yyyy hh:mm:ss",
@@ -607,7 +607,7 @@
                     field: "end",
                     sorter: "datetime",
                     width: 100,
-                        editor: "datetime",
+                    editor: "datetime",
                     editorParams: {
                         format: "dd/MM/yyyy hh:mm:ss",
                         verticalNavigation: "table",
@@ -618,14 +618,15 @@
                     width: 100,
                     editor: false,
                     hozAlign: "center",
+                    sorter: "number",
                     download: true,
                     formatter: calculImmoReel,
                 },
                 {
                     title: "DEMANDE DE TRAVAUX",
                     field: "works",
-                        editor: textareaPopup,
-
+                    editor: textareaPopup,
+                    headerSort: false,
                     width: 200,
                     formatter: function (cell, formatterParams) {
                         // Get the value from the cell
@@ -653,9 +654,9 @@
                 {
                     title: "COMMENTAIRES",
                     field: "commentaire",
-                        editor: textareaPopup,
+                    editor: textareaPopup,
                     accessorDownload: textareaAccessor,
-
+                    headerSort: false,
                     width: 200,
                     formatter: function (cell, formatterParams) {
                         // Get the value from the cell
@@ -676,7 +677,7 @@
                 {
                     title: "Piece Jointe",
                     field: 'jointe_count',
-
+                    sorter: "number",
                     width: 100,
                     formatter: function (cell, formatterParams) {
                         if (cell.getValue() > 0) {
@@ -685,7 +686,7 @@
                         return ''
                     },
                     hozAlign: "center",
-                        editor: uploadPiecePopup,
+                    editor: uploadPiecePopup,
 
                 },
                 {

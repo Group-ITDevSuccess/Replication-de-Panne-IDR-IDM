@@ -85,7 +85,7 @@
 {% block script %}
     <script type="text/javascript">
         let editTickCross = function (cell, onRendered, success, cancel) {
-            let edited = cell.isEdited();
+            {#let edited = cell.isEdited();#}
             const rowData = cell.getRow().getData();
             {#console.log("On a : " + edited + " d'ou : "+JSON.stringify(rowData))#}
 
@@ -199,7 +199,8 @@
                 }
             },
             rowHeader: {
-                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()" ><i class='fas fa-plus'></i></button>`,
+                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()"
+                {% if not user.is_superuser %}disabled{% endif %}><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
                 resizable: false,
                 minWidth: 30,
@@ -219,6 +220,10 @@
                     val = 'Non Autoriser';
                 }
                 return val || "Nouveaux";
+            },
+            groupHeader: function (value, count, data, group) {
+
+                return value + "<span style='color:#d00; margin-left:10px;'>(" + count + " personne)</span>";
             },
             columns: [
                 {
