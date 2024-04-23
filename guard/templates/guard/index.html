@@ -115,13 +115,15 @@
                 title: 'Liste des Utilisateur',
                 paging: true,
                 pageSize: 10,
-                    sorting: true,
+                sorting: true,
                 defaultSorting: 'username ASC',
                 actions: {
                     listAction: '{% url 'guard:get_all_users_json' %}',
                     createAction: '{% url 'guard:create_user_json' %}',
                     updateAction: '{% url 'guard:update_user_json' %}',
-                    deleteAction: '{% url 'guard:delete_user_json' %}'
+                    {% if user.is_superuser %}
+                            deleteAction: '{% url 'guard:delete_user_json' %}'
+                    {% endif %}
                 },
                 fields: {
                     id: {
@@ -134,17 +136,18 @@
                         title: 'Identifiant',
                         width: '10%',
                         create: true,
-                        edit: true
+                        edit: true,
+                        readOnly: true
                     },
                     first_name: {
                         title: 'Nom',
                         create: true,
-                        edit: true
+                        edit: false
                     },
                     last_name: {
                         title: 'Prénom',
                         create: true,
-                        edit: true
+                        edit: false
                     },
                     autoriser: {
                         title: 'Autoriser',
@@ -175,12 +178,18 @@
                         title: 'Active',
                         type: 'checkbox',
                         sorting: false,
+                        {% if not user.is_superuser %}
+                            edit: false,
+                        {% endif %}
                         values: {'false': 'Désactiver', 'true': 'Active'},
                     },
                     is_staff: {
                         title: 'Staff',
                         type: 'checkbox',
                         sorting: false,
+                        {% if not user.is_superuser %}
+                            edit: false,
+                        {% endif %}
                         values: {'false': 'Désactiver', 'true': 'Active'},
                     },
                     is_superuser: {
@@ -188,6 +197,9 @@
                         type: 'checkbox',
                         width: '20%',
                         sorting: false,
+                        {% if not user.is_superuser %}
+                            edit: false,
+                        {% endif %}
                         values: {'false': 'Désactiver', 'true': 'Active'},
                     },
                 }
