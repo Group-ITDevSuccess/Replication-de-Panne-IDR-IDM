@@ -7,6 +7,7 @@
 {% block style %}
 
     <link rel="stylesheet" href="{% static 'jquery-ui-1.13.2/jquery-ui.min.css' %}" type="text/css">
+    <link rel="stylesheet" href="{% static 'jquery-ui-1.13.2/jquery-ui.theme.min.css' %}" type="text/css">
     <link rel="stylesheet" href="{% static 'jtable/themes/metro/darkgray/jtable.min.css' %}" type="text/css">
     <style>
         .hidden-switcher .fancy-field-switcher {
@@ -78,6 +79,7 @@
                 Page Administration
             </div>
             <div class="card-body">
+                
                 <div id="container"></div>
             </div>
         </div>
@@ -116,13 +118,17 @@
                 paging: true,
                 pageSize: 10,
                 sorting: true,
+                selecting: true, //Enable selecting
+                multiselect: true, //Allow multiple selecting
+                selectingCheckboxes: true, //Show checkboxes on first column
+                selectOnRowClick: false, //Enable this to only select using checkboxes
                 defaultSorting: 'username ASC',
                 actions: {
                     listAction: '{% url 'guard:get_all_users_json' %}',
                     createAction: '{% url 'guard:create_user_json' %}',
                     updateAction: '{% url 'guard:update_user_json' %}',
                     {% if user.is_superuser %}
-                            deleteAction: '{% url 'guard:delete_user_json' %}'
+                        deleteAction: '{% url 'guard:delete_user_json' %}'
                     {% endif %}
                 },
                 fields: {
@@ -202,7 +208,8 @@
                         {% endif %}
                         values: {'false': 'Désactiver', 'true': 'Active'},
                     },
-                }
+                },
+
             });
             $('#container').jtable('load');
         });
