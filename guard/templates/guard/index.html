@@ -6,9 +6,6 @@
 {% endblock %}
 {% block style %}
 
-    <link rel="stylesheet" href="{% static 'jquery-ui-1.13.2/jquery-ui.min.css' %}" type="text/css">
-    <link rel="stylesheet" href="{% static 'jquery-ui-1.13.2/jquery-ui.theme.min.css' %}" type="text/css">
-    <link rel="stylesheet" href="{% static 'jtable/themes/metro/darkgray/jtable.min.css' %}" type="text/css">
     <style>
         .hidden-switcher .fancy-field-switcher {
             display: none !important;
@@ -86,132 +83,286 @@
     </main>
 {% endblock %}
 {% block script %}
-
-    <script src="{% static 'jquery-ui-1.13.2/jquery-ui.min.js' %}" type="text/javascript"></script>
-    <script src="{% static 'jtable/jquery.jtable.min.js' %}" type="text/javascript"></script>
     <script type="text/javascript">
-        let frenchMessages = {
-            serverCommunicationError: 'Une erreur s\'est produite lors de la communication avec le serveur.',
-            loadingMessage: 'Chargement des enregistrements...',
-            noDataAvailable: 'Aucune donnée disponible !',
-            addNewRecord: 'Ajouter',
-            editRecord: 'Modifier l\'enregistrement',
-            areYouSure: 'Êtes-vous sûr(e) ?',
-            deleteConfirmation: 'Cet enregistrement sera supprimé. Êtes-vous sûr(e) ?',
-            save: 'Enregistrer',
-            saving: 'Enregistrement en cours',
-            cancel: 'Annuler',
-            deleteText: 'Supprimer',
-            deleting: 'Suppression en cours',
-            error: 'Erreur',
-            close: 'Fermer',
-            cannotLoadOptionsFor: 'Impossible de charger les options pour le champ {0} !',
-            pagingInfo: 'Total de {2}, affichage de {0} à {1}',
-            canNotDeletedRecords: '{0} sur {1} enregistrements n\'ont pas pu être supprimés !',
-            deleteProggress: '{0} sur {1} enregistrements supprimés, en cours de suppression...'
-        };
-        $(document).ready(function () {
+        let editTickCross = function (cell, onRendered, success, cancel) {
+            let edited = cell.isEdited();
+            const rowData = cell.getRow().getData();
+            {#console.log("On a : " + edited + " d'ou : "+JSON.stringify(rowData))#}
 
-            $('#container').jtable({
-                messages: frenchMessages,
-                title: 'Liste des Utilisateur',
-                paging: true,
-                pageSize: 10,
-                sorting: true,
-                selecting: true, //Enable selecting
-                multiselect: true, //Allow multiple selecting
-                selectingCheckboxes: true, //Show checkboxes on first column
-                selectOnRowClick: false, //Enable this to only select using checkboxes
-                defaultSorting: 'username ASC',
-                actions: {
-                    listAction: '{% url 'guard:get_all_users_json' %}',
-                    createAction: '{% url 'guard:create_user_json' %}',
-                    updateAction: '{% url 'guard:update_user_json' %}',
+            if (rowData.id) {
+                fetch("{% url 'guard:update_user_json' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(rowData)
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                alert(data.error);
+                                throw new Error(data.error); // Throw an error to stop further processing
+                            });
+                        }
+                        return response.json(); // Parse the JSON response for successful requests
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            cell.getRow().update(rowData);
+                            reloadPage()
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error updating breakdown:", error);
+                        cancel()
+                    });
+            } else {
+                console.log("Mais: " + rowData)
+            }
+        }
+
+        let deleteUserRow = function (e, cell) {
+
+            let userId = cell.getData().id;
+            if (userId) {
+                if (confirm("Est-vous sûr de vouloir supprimer ceci ?")) {
+
+                    fetch("{% url 'guard:delete_user_json' %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "X-CSRFToken": "{{ csrf_token }}"
+                        },
+                        body: JSON.stringify({'id': userId})
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                table.deleteRow(cell.getRow());
+                            } else {
+                                console.error("Error deleting Breakdown:", data.error);
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error deleting Breakdown:", error);
+                        });
+                }
+
+            } else {
+                table.deleteRow(cell.getRow());
+            }
+        }
+        let table = new Tabulator('#container', {
+            ajaxURL: "{% url 'guard:get_all_users_json' %}",
+            ajaxContentType: "json",
+            rowHeight: 30,
+            resizableRows: true,
+            resizableRowGuide: true,
+            editorEmptyValue: '',
+            layout: "fitColumns",
+            tooltipsHeader: true,
+            headerSortClickElement: 'icon',
+            selectableRangeClearCells: true,
+            columnHeaderVertAlign: "bottom",
+            height: "40vw",
+            success: function (data) {
+                if (data.status !== 200 && data.status !== 201) {
+                    // Display error message in alert and prevent tickCross change
+                    alert(data.error || "An error occurred while fetching data.");
+                    return; // Exit the function if there's an error
+                }
+                table.setData(data.data);
+            },
+            renderHorizontal: "virtual",
+            resizableColumnGuide: true,
+            initialSort: [
+                {column: "username", dir: "asc"},
+            ],
+            placeholder: "Aucun Donnée",
+            placeholderHeaderFilter: 'Aucun Donnée Correspondent',
+            headerSort: true,
+            columnDefaults: {
+                tooltip: true,
+                headerHozAlign: "center",
+                editor: false,
+                resizable: "header",
+            },
+            rowFormatter: function (row) {
+                const rowData = row.getData();
+                const autoriser = rowData.autoriser;
+
+                if (autoriser) {
+                    row.getElement().style.backgroundColor = "#1e3b20"; // Add 'active-row' class
+
+                } else {
+                    row.getElement().style.backgroundColor = "#3b1e2b"; //
+                }
+            },
+            rowHeader: {
+                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' onclick="addRow()" ><i class='fas fa-plus'></i></button>`,
+                headerSort: false,
+                resizable: false,
+                minWidth: 30,
+                width: 35,
+                frozen: true,
+                rowHandle: true,
+                editor: false,
+                formatter: "handle",
+            },
+            groupBy: function (rowData) {
+                let rowAutoriser = rowData.autoriser;
+
+                let val;
+                if (rowAutoriser) {
+                    val = 'Autoriser';
+                } else {
+                    val = 'Non Autoriser';
+                }
+                return val || "Nouveaux";
+            },
+            columns: [
+                {
+                    title: "N°",
+                    resizable: false,
+                    formatter: "rownum",
+                    hozAlign: "center",
+                    width: 40,
+                    sorter: "number",
+                    editor: false,
+                    frozen: true,
+                    download: false,
+                    headerSort: false,
+                    {#bottomCalc:"count",#}
+                },
+                {
+                    title: "Identifiant",
+                    field: "username",
+                    width: 150,
+                },
+                {
+                    title: "Nom",
+                    field: "first_name",
+                    editor: false,
+                    width: 150,
+                },
+                {
+                    title: "Prénom",
+                    field: "last_name",
+                    editor: false,
+                    width: 150,
+                }, {
+                    title: "Email",
+                    field: "email",
+                    editor: false,
+                    width: 250,
+                },
+                {
+                    title: "<code>*</code> Autoriser",
+                    field: 'autoriser',
+                    resizable: false,
+                    hozAlign: "center",
+                    formatter: "tickCross",
+                    editor: true,
+                    headerSort: false,
+                    cellEdited: editTickCross
+
+                },
+                {
+                    title: "<code>*</code> ID Motors",
+                    resizable: false,
+                    field: 'level_1',
+                    hozAlign: "center",
+                    formatter: "tickCross",
+                    editor: true,
+                    headerSort: false,
+                    cellEdited: editTickCross
+
+                },
+                {
+                    title: "<code>*</code> SAV ID Rental",
+                    resizable: false,
+                    field: 'level_2',
+                    hozAlign: "center",
+                    formatter: "tickCross",
+                    headerSort: false,
+                    editor: true,
+                    cellEdited: editTickCross
+
+                },
+                {
+                    title: "<code>*</code> Import Export ID Motors",
+                    resizable: false,
+                    field: 'level_3',
+                    hozAlign: "center",
+                    formatter: "tickCross",
+                    headerSort: false,
+                    editor: true,
+                    cellEdited: editTickCross
+
+                },
+                {
+                    title: "<code>*</code> Direction",
+                    resizable: false,
+                    field: 'level_4',
+                    hozAlign: "center",
+                    formatter: "tickCross",
+                    headerSort: false,
+                    editor: true,
+                    cellEdited: editTickCross
+
+                },
+                {
+                    title: "Staff",
+                    resizable: false,
+                    field: 'is_staff',
+                    hozAlign: "center",
+                    formatter: "tickCross",
+                    headerSort: false,
                     {% if user.is_superuser %}
-                        deleteAction: '{% url 'guard:delete_user_json' %}'
+                        editor: true,
+                        cellEdited: editTickCross
+                    {% endif %}
+
+
+                },
+                {
+                    title: "Super Utilisateur",
+                    resizable: false,
+                    field: 'is_superuser',
+                    hozAlign: "center",
+                    formatter: "tickCross",
+                    headerSort: false,
+                    {% if user.is_superuser %}
+                        editor: true,
+                        cellEdited: editTickCross
                     {% endif %}
                 },
-                fields: {
-                    id: {
-                        key: true,
-                        list: false,
-                        create: false,
-                        edit: false,
-                    },
-                    username: {
-                        title: 'Identifiant',
-                        width: '10%',
-                        create: true,
-                        edit: true,
-                        readOnly: true
-                    },
-                    first_name: {
-                        title: 'Nom',
-                        create: true,
-                        edit: false
-                    },
-                    last_name: {
-                        title: 'Prénom',
-                        create: true,
-                        edit: false
-                    },
-                    autoriser: {
-                        title: 'Autoriser',
-                        type: 'checkbox',
-                        values: {'false': 'Désactiver', 'true': 'Active'},
-                    },
-                    level_1: {
-                        title: 'ID Rental',
-                        type: 'checkbox',
-                        values: {'false': 'Désactiver', 'true': 'Active'},
-                    },
-                    level_2: {
-                        title: 'SAV ID Motors',
-                        type: 'checkbox',
-                        values: {'false': 'Désactiver', 'true': 'Active'},
-                    },
-                    level_3: {
-                        title: 'Import Export ID Motors',
-                        type: 'checkbox',
-                        values: {'false': 'Désactiver', 'true': 'Active'},
-                    },
-                    level_4: {
-                        title: 'Direction',
-                        type: 'checkbox',
-                        values: {'false': 'Désactiver', 'true': 'Active'},
-                    },
-                    is_active: {
-                        title: 'Active',
-                        type: 'checkbox',
-                        sorting: false,
-                        {% if not user.is_superuser %}
-                            edit: false,
-                        {% endif %}
-                        values: {'false': 'Désactiver', 'true': 'Active'},
-                    },
-                    is_staff: {
-                        title: 'Staff',
-                        type: 'checkbox',
-                        sorting: false,
-                        {% if not user.is_superuser %}
-                            edit: false,
-                        {% endif %}
-                        values: {'false': 'Désactiver', 'true': 'Active'},
-                    },
-                    is_superuser: {
-                        title: 'Super Admin',
-                        type: 'checkbox',
-                        width: '20%',
-                        sorting: false,
-                        {% if not user.is_superuser %}
-                            edit: false,
-                        {% endif %}
-                        values: {'false': 'Désactiver', 'true': 'Active'},
-                    },
+                {
+                    title: "Dernier Connexion",
+                    resizable: true,
+                    field: 'date_joined',
+                    hozAlign: "center",
+                    headerSort: true,
+                    editor: false,
+                    sorter: "datetime",
                 },
+                {
+                    formatter: function (cell, formatterParams) { //plain text value
+                        return "<i class='fa fa-trash'></i>";
+                    },
+                    headerSort: false,
+                    frozen: true,
+                    resizable: false,
+                    width: 50,
+                    hozAlign: "center",
+                    {% if user.is_superuser %}
+                        cellClick: deleteUserRow
+                    {% endif %}
+                }
 
-            });
-            $('#container').jtable('load');
-        });
+
+            ]
+        })
+
     </script>
 {% endblock %}

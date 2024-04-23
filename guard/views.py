@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from django.contrib import messages
@@ -31,16 +32,13 @@ def index(request):
 @csrf_exempt
 def all_users_json(request):
     users = CustomUser.objects.all().annotate(id=F('uid')).values(
-        'id', 'username', 'first_name', 'last_name', 'level_1', 'level_2', 'level_3', 'level_4', 'autoriser',
+        'id', 'username', 'first_name', 'last_name', 'email', 'level_1', 'level_2', 'level_3', 'level_4', 'autoriser',
         'is_active',
-        'is_staff', 'is_superuser',
+        'is_staff', 'is_superuser', 'date_joined'
     )
     data = list(users)
-    context = {
-        'Result': 'OK',
-        'Records': data
-    }
-    return JsonResponse(context, safe=False)
+
+    return JsonResponse(data, safe=False)
 
 
 @csrf_exempt
@@ -59,17 +57,20 @@ def get_all_permission(request):
 @login_required
 @csrf_exempt
 def update_user_json(request):
-    uid = are_valid_uuids(request.POST.get('id', None))
+    data = json.loads(request.body)
+    uid = are_valid_uuids(data.get('id', None))
     message = "Uid est Null !"
+    # print(request.body)
     if uid is not None:
         try:
             user = CustomUser.objects.get(uid__exact=uid)
-            for key, value in request.POST.items():
-                if value == 'true':
-                    value = True
-                elif value == 'false':
-                    value = False
-                setattr(user, key, value)
+            for key, value in data.items():
+                if key not in ['id', 'date_joined']:
+                    if value == 'true':
+                        value = True
+                    elif value == 'false':
+                        value = False
+                    setattr(user, key, value)
             user.save()
             return JsonResponse({"Result": "OK"}, status=201)
 
@@ -94,30 +95,31 @@ def create_user_json(request):
                     value = False
                 setattr(user, key, value)
             user.save()
-            data = {
-                "Result": "OK",
-                "Record": list(CustomUser.objects.filter(uid__exact=user.uid).annotate(id=F('uid')).values(
-                    'id', 'username', 'first_name', 'last_name', 'level_1', 'level_2', 'level_3', 'level_4',
-                    'autoriser',
-                    'is_active',
-                    'is_staff', 'is_superuser',
-                ))
-            }
+            data = list(CustomUser.objects.filter(uid__exact=user.uid).annotate(id=F('uid')).values(
+                'id', 'username', 'first_name', 'last_name', 'level_1', 'level_2', 'level_3', 'level_4',
+                'autoriser',
+                'is_active',
+                'is_staff', 'is_superuser',
+            ))
             return JsonResponse(data, safe=False, status=201)
     except Exception as e:
         write_log(str(e))
 
-    return JsonResponse({"Result": "ERROR", "Message": "Erreur de création de l'utilisateur"}, safe=False)
+    return JsonResponse({"error": "Erreur de création de l'utilisateur"}, safe=False)
 
 
 @login_required
 @csrf_exempt
 def delete_user_json(request):
-    uids = are_valid_uuids(request.POST.getlist('id', None))
+    data = json.loads(request.body)
+    uids = are_valid_uuids(data.get('id', None))
     if uids is not None:
-        user = CustomUser.objects.get(uid__in=uids)
-        user.delete()
-        return JsonResponse({"Result": "OK"}, safe=False, status=201)
+        try:
+            user = CustomUser.objects.get(uid__exact=uids)
+            user.delete()
+            return JsonResponse({'success': True}, safe=False, status=201)
+        except Exception as e:
+            write_log(str(e))
     return JsonResponse({"Result": "ERROR", "Message": "Erreur de suppression de l'utilisateur"}, safe=False)
 
 
