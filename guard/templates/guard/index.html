@@ -80,7 +80,15 @@
                     <div class="col-lg-9 col-md-12">
                         <div id="container"></div>
                     </div>
-                    <div class="col-lg-3 col-md-12"></div>
+                    <div class="col-lg-3 col-md-12">
+                        <div class="row">
+                            <div class="col-12">
+                                <div id="table-sender"></div>
+                                <div id="table-receiver" class="mt-3"></div>
+                            </div>
+                            <div class="col-12"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -131,7 +139,6 @@
                 console.log("Mais: " + rowData)
             }
         }
-
         let deleteUserRow = function (e, cell) {
             let userId = cell.getData().id;
             if (userId) {
@@ -359,5 +366,84 @@
             ]
         })
 
+        let tableSender = new Tabulator('#table-sender', {
+            height: "19vw",
+            layout: "fitColumns",
+            movableRows: true,
+            movableRowsConnectedTables: "#table-receiver",
+            movableRowsReceiver: 'add',
+            movableRowsSender: "delete",
+            rowHeader: {
+                resizable: false,
+                frozen: true,
+                width: 40,
+                hozAlign: "center",
+                formatter: "rownum",
+                cssClass: "range-header-col"
+            },
+            placeholder: "Aucun Client",  // Assuming French for "No Clients"
+            ajaxURL: "{% url 'guard:get_all_client_not_used_json' %}",
+            ajaxContentType: "json",
+            columns: [
+                {title: "Nom", field: "name"},
+            ],
+        });
+
+        let tableReceiver = new Tabulator("#table-receiver", {
+            height: "20vw",
+            layout: "fitColumns",
+            placeholder: "Coller ici",   // Assuming French for "Paste Here"
+            ajaxURL: "{% url 'guard:get_all_client_used_json' %}",
+            ajaxContentType: "json",
+            movableRows: true,
+            movableRowsConnectedTables: "#table-sender",
+            movableRowsReceiver: "add",
+            movableRowsSender: "delete",
+            columns: [
+                {
+                    title: 'Liste des application', columns: [
+                        {title: "Nom", field: "name"},
+                    ]
+                }
+            ],
+        });
+
+        function customStatus(rowData) {
+            fetch("{% url 'guard:update_status_client' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(rowData)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            alert(data.error);
+                            throw new Error(data.error); // Throw an error to stop further processing
+                        });
+                    }
+                    return response.json(); // Parse the JSON response for successful requests
+                })
+                .then(data => {
+                    if (data.success) {
+                        {#cell.getRow().update(rowData);#}
+                        reloadPage()
+                    }
+                })
+                .catch(error => {
+                    console.error("Error updating breakdown:", error);
+                    {#cancel()#}
+                });
+        }
+
+        tableSender.on('movableRowsSent', function (e, column) {
+            let rowData = e.getData();
+            customStatus(rowData)
+        })
+        tableReceiver.on('movableRowsSent', function (e, column) {
+            let rowData = e.getData();
+            customStatus(rowData)
+        })
     </script>
 {% endblock %}

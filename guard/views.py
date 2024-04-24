@@ -10,6 +10,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import F
 from django.views.decorators.csrf import csrf_exempt
 
+from apps.idr_idm.models import Client
 from utils.script import ldap_login_connection, write_log, are_valid_uuids
 from .forms import LoginForm, ProfileForm
 from .models import CustomUser, CustomPermission
@@ -39,6 +40,47 @@ def all_users_json(request):
     data = list(users)
 
     return JsonResponse(data, safe=False)
+
+
+@login_required
+@csrf_exempt
+def get_all_client_not_used_json(request):
+    client = Client.objects.filter(used__exact=False).values('uid', 'name')
+    data = list(client)
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@csrf_exempt
+def get_all_client_used_json(request):
+    client = Client.objects.filter(used__exact=True).values('uid', 'name')
+    data = list(client)
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@csrf_exempt
+def update_status_client(request):
+    print(f"BODY : {request.body}")
+    data = {}
+    try:
+        payload = json.loads(request.body)
+        uid = payload.get('uid')
+        if uid:
+            client = Client.objects.get(uid=uid)
+            status = client.used
+            client.used = not status
+            client.save()
+            data = {
+                'uid': client.uid,
+                'name': client.name
+            }
+    except Client.DoesNotExist:
+        data = {'error': 'Client not found'}
+    except Exception as e:
+        write_log(str(e))
+        data = {'error': str(e)}
+    return JsonResponse(data)
 
 
 @csrf_exempt
