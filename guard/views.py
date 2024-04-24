@@ -61,7 +61,7 @@ def get_all_client_used_json(request):
 @login_required
 @csrf_exempt
 def update_status_client(request):
-    print(f"BODY : {request.body}")
+    # print(f"BODY : {request.body}")
     data = {}
     try:
         payload = json.loads(request.body)

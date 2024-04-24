@@ -25,6 +25,7 @@ urlpatterns = [
     path('accounts/', include('guard.urls')),
     path('i18n/', include('django.conf.urls.i18n')),
     path('', include('apps.idr_idm.urls')),
+    path('detail', include('apps.detail.urls')),
     re_path(r"^static/(?P<path>.*)$", serve, {'document_root': settings.STATIC_ROOT}),
     re_path(r"^media/(?P<path>.*)$", serve, {'document_root': settings.MEDIA_ROOT}),
     path("__reload__/", include("django_browser_reload.urls")),

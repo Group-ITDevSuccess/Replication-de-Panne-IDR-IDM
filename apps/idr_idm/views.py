@@ -148,8 +148,53 @@ def delete_jointe(request):
 @csrf_exempt
 @login_required
 def get_all_machineidridm_with_breakdown_false(request):
-    if request.method == 'GET':
-        machines = MachineIdrIdm.objects.filter(breakdown__archived=False, breakdown__isnull=False).annotate(
+    if request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        uid = data.get('uid', None)
+    else:
+        uid = None
+    if uid is not None:
+        query = MachineIdrIdm.objects.filter(breakdown__client__uid=uid, breakdown__archived=False,
+                                             breakdown__isnull=False)
+    else:
+        query = MachineIdrIdm.objects.filter(breakdown__archived=False, breakdown__isnull=False)
+    machines = query.annotate(
+        localisation_name=F('breakdown__localisation__locality'),
+        client_name=F('breakdown__client__name'),
+        appointment=F('breakdown__appointment'),
+        enter=F('breakdown__enter'),
+        order=F('breakdown__order'),
+        km_enter=F('breakdown__km_enter'),
+        km_exit=F('breakdown__km_exit'),
+        start=F('breakdown__start'),
+        leave=F('breakdown__leave'),
+        works=F('breakdown__works'),
+        prevision=F('breakdown__prevision'),
+        piece=F('breakdown__piece'),
+        diagnostics=F('breakdown__diagnostics'),
+        achats=F('breakdown__achats'),
+        imports=F('breakdown__imports'),
+        decision=F('breakdown__decision'),
+        uid_name=F('breakdown__uid'),
+        month=F('breakdown__month'),
+        jde=F('breakdown__jde'),
+        address=F('breakdown__address'),
+        no=F('breakdown__no'),
+        archived_status=F('breakdown__archived'),
+        jointe_count=Count('breakdown__jointe')
+    ).values(
+        'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
+        'appointment', 'enter', 'order', 'leave',
+        'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no',
+        'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
+    )
+
+    breakdowns_list = [{key: format_value(value) for key, value in machine.items()} for machine in machines]
+    datas = []
+    for items_breakdown in breakdowns_list:
+        matricule = items_breakdown.get('matriculate')
+        breakdowns_archived = MachineIdrIdm.objects.filter(breakdown__machineidridm__matriculate=matricule,
+                                                           breakdown__archived=True).annotate(
             localisation_name=F('breakdown__localisation__locality'),
             client_name=F('breakdown__client__name'),
             appointment=F('breakdown__appointment'),
@@ -167,11 +212,11 @@ def get_all_machineidridm_with_breakdown_false(request):
             imports=F('breakdown__imports'),
             decision=F('breakdown__decision'),
             uid_name=F('breakdown__uid'),
+            archived_status=F('breakdown__archived'),
             month=F('breakdown__month'),
             jde=F('breakdown__jde'),
             address=F('breakdown__address'),
             no=F('breakdown__no'),
-            archived_status=F('breakdown__archived'),
             jointe_count=Count('breakdown__jointe')
         ).values(
             'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
@@ -179,50 +224,12 @@ def get_all_machineidridm_with_breakdown_false(request):
             'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no',
             'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
         )
+        if breakdowns_archived:
+            items_breakdown['_children'] = [{key: format_value(value) for key, value in machine.items()} for machine
+                                            in breakdowns_archived]
 
-        breakdowns_list = [{key: format_value(value) for key, value in machine.items()} for machine in machines]
-        datas = []
-        for items_breakdown in breakdowns_list:
-            matricule = items_breakdown.get('matriculate')
-            breakdowns_archived = MachineIdrIdm.objects.filter(breakdown__machineidridm__matriculate=matricule,
-                                                               breakdown__archived=True).annotate(
-                localisation_name=F('breakdown__localisation__locality'),
-                client_name=F('breakdown__client__name'),
-                appointment=F('breakdown__appointment'),
-                enter=F('breakdown__enter'),
-                order=F('breakdown__order'),
-                km_enter=F('breakdown__km_enter'),
-                km_exit=F('breakdown__km_exit'),
-                start=F('breakdown__start'),
-                leave=F('breakdown__leave'),
-                works=F('breakdown__works'),
-                prevision=F('breakdown__prevision'),
-                piece=F('breakdown__piece'),
-                diagnostics=F('breakdown__diagnostics'),
-                achats=F('breakdown__achats'),
-                imports=F('breakdown__imports'),
-                decision=F('breakdown__decision'),
-                uid_name=F('breakdown__uid'),
-                archived_status=F('breakdown__archived'),
-                month=F('breakdown__month'),
-                jde=F('breakdown__jde'),
-                address=F('breakdown__address'),
-                no=F('breakdown__no'),
-                jointe_count=Count('breakdown__jointe')
-            ).values(
-                'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
-                'appointment', 'enter', 'order', 'leave',
-                'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no',
-                'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
-            )
-            if breakdowns_archived:
-                items_breakdown['_children'] = [{key: format_value(value) for key, value in machine.items()} for machine
-                                                in breakdowns_archived]
-
-            datas.append(items_breakdown)
-        return JsonResponse(datas, status=200, safe=False)
-    else:
-        return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
+        datas.append(items_breakdown)
+    return JsonResponse(datas, status=200, safe=False)
 
 
 @csrf_exempt
@@ -377,8 +384,9 @@ def create_machine(request):
 
 
 @login_required
-def get_all_machines_in_table(request):
+def get_all_machines_in_table(request, uid=None):
     machines_assigned = BreakdownIdrIdm.objects.filter(archived=False).values('machine__uid')
+
     machines = MachineIdrIdm.objects.exclude(uid__in=Subquery(machines_assigned))
 
     machines_data = []

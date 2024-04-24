@@ -1,0 +1,1015 @@
+{% extends 'base.html' %}
+{% block title %}
+    {{ name_client }}
+{% endblock %}
+{% block content %}
+    <main class="container-fluid mt-4">
+
+        <div class="mb-2">
+            <div class="btn-group" role="group" aria-label="Actions">
+
+                <button class="btn btn-secondary mr-2" id="download-xlsx"><i class="fas fa-file-excel"></i></button>
+                <button class="btn btn-secondary mr-2" id="print-table"><i class="fas fa-print"></i></button>
+
+                <form class="form-inline" method="post" action="{% url 'idr_idm:create_machine' %}">
+                    {% csrf_token %}
+                    <div class="form-group mr-2">
+                        {{ form_add_machine.matriculate }}
+                    </div>
+                    <div class="form-group mr-2">
+                        {{ form_add_machine.model }}
+                    </div>
+                    <button class="btn btn-warning mr-2" id="filter-submit" type="submit"><i
+                            class="fas fa-plus-circle"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div id="pannes"></div>
+
+    </main>
+{% endblock %}
+{% block script %}
+
+
+    <script type="text/javascript">
+        function calculImmoReel(cell) {
+            const rowData = cell.getRow().getData();
+
+            const formattedStartDate = formatDate(rowData.start);
+            const formattedEndDate = formatDate(rowData.leave);
+
+            if (formattedStartDate && formattedEndDate) {
+                const startDate = new Date(formattedStartDate);
+                const endDate = new Date(formattedEndDate);
+                if (isNaN(startDate.getTime())) {
+                    return "";
+                }
+                if (isNaN(endDate.getTime())) {
+                    return "";
+                }
+
+                const diffInMs = endDate.getTime() - startDate.getTime();
+
+                return Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
+            }
+            return ''
+
+        }
+        function uploadPiecePopup(cell, onRendered, success, cancel) {
+        const uid = cell.getData().uid_name;
+        if (uid) {
+            const modalId = `uploadCellModal-${uid}`;
+            const uploadPiece = `upload-${uid}`
+            const tablePiece = `piece-load-${uid}`
+            const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="${modalId}Label">Piece Jointe du ${cell.getData().matriculate}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <input id="${uploadPiece}" type="file" name="files" accept=".jpg, .png, .pdf, .txt, .doc, .docx, .xls, .xlsx, .ppt, .pptx, image/jpeg, image/png,text/plain, application/pdf, application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint" multiple>
+                                </div>
+                                <div class="col-6">
+                                    <div id="${tablePiece}"></div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+
+            $('body').append(modalHtml);
+
+            const modalElement = document.getElementById(modalId);
+            $(modalElement).modal('show');
+
+            {#https://www.jqueryscript.net/form/Fancy-File-Uploader-jQuery.html#}
+            $(`#${uploadPiece}`).FancyFileUpload({
+                url: '{% url 'idr_idm:upload_file' %}',
+                params: {
+                     id: `${uid}`
+                },
+                maxfilesize : 100000000,
+                edit: true,
+                success: true,
+                error: "Erreur lors de Upload de ce Fichier",
+                accept: [
+                    '.jpg', '.png', 'image/jpeg', 'image/png', // Images
+                    '.pdf', 'application/pdf', // PDF
+                    '.txt', 'text/plain', // Fichiers texte
+                    '.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // Documents Word
+                    '.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // Feuilles de calcul Excel
+                    '.ppt', '.pptx', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // Présentations PowerPoint
+                ],
+                displayunits :'iec_windows',
+
+                retries: 5,
+                retrydelay: 500,
+                uploadcompleted: function(e, data) {
+
+                },
+
+            })
+
+             let pieces = new Tabulator(`#${tablePiece}`, {
+            ajaxURL: "{% url 'idr_idm:get_file_jointe' %}", //ajax URL
+            ajaxContentType: "json",
+            columnDefaults: {
+                tooltip: true,
+                headerHozAlign: "center",
+                editor: false,
+                resizable: "header",
+            },
+            persistence: {
+                sort: true,
+                filter: false,
+                {#columns: true,#}
+            },
+            headerSort: true,
+            history: true,
+            headerSortClickElement: 'icon',
+            selectableRangeClearCells: true,
+            columnHeaderVertAlign: "bottom",
+            ajaxConfig: "POST",
+            ajaxParams: {uid: uid},
+            success: function (data) {
+                if (data.status !== 200 && data.status !== 201) {
+                    // Display error message in alert and prevent tickCross change
+                    alert(data.error || "An error occurred while fetching data.");
+                    return; // Exit the function if there's an error
+                }
+                const piece = data.data;
+                console.log(data)
+                table.setData(piece);
+            },
+            progressiveLoad: "load",
+            progressiveLoadDelay: 200,
+            layout: "fitDataStretch",
+            height: "200px",
+            placeholder: "Aucun Pièce Jointe",
+            placeholderHeaderFilter: 'Aucun Pièce Jointe Correspondent',
+            rowHeight: 40,
+            resizableRows: true,
+            resizableRowGuide: true,
+            rowHeader: {
+                formatter: "rownum",
+                headerSort: false,
+                hozAlign: "center",
+                resizable: false,
+                frozen: true
+            },
+            columns: [
+                {title: "Titre", field: "name", headerSort: true, width: 100,},
+                {title: "Nom du Fichier", field: "fichier", headerSort: true, width: 100,},
+                {title: "Acteur", field: "acteur", headerSort: true, width: 100,},
+                {
+                    title: "Date",
+                    field: "created_at",
+                    hozAlign: "center",
+                    sorter: "date",
+                    headerSort: true,
+                    width: 125
+                },
+                {
+                    title: 'Action',
+                    formatter: function (cell, formatterParams) { //plain text value
+                        return "<i class='fa fa-trash-arrow-up'></i>";
+                    },
+                    headerSort: false,
+                    frozen: true,
+                    resizable: false,
+                    hozAlign: "center",
+                    download: false,
+                    cellClick: function (e, cell) {
+
+                        let fileId = cell.getData().uid;
+                        let user = ('{{ user.username }}' === cell.getData().acteur);
+                        if (fileId && user) {
+                            if (confirm("Est-vous sûr de vouloir supprimer ce piece jointe ceci ?")) {
+
+                                fetch("{% url 'idr_idm:delete_jointe' %}", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/x-www-form-urlencoded",
+                                        "X-CSRFToken": "{{ csrf_token }}"
+                                    },
+                                    body: new URLSearchParams({
+                                        'uid_breakdown': uid,
+                                        'uid_jointe': fileId,
+                                    })
+                                })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            pieces.deleteRow(cell.getRow());
+
+                                        } else {
+                                            console.error("Error deleting Breakdown:", data.error);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error("Error deleting Breakdown:", error);
+                                    });
+                            }
+
+                        } else {
+                            alert("Vous n'ête pas celui qui a uploader ce fichier")
+                        }
+
+                    }
+                }
+            ]
+        });
+
+
+            $(modalElement).on('hide.bs.modal', () => {
+                $(`#${modalId}`).remove();
+                {#reloadPage();#}
+
+            });
+            return true;
+        }
+        alert("Le panne doit etre enreigstrer d'abord !")
+        return false;
+    }
+
+        let tickCrossEditor = function (cell, onRendered, success, cancel) {
+            // Create the checkbox element
+            let checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.className = "mt-3";
+
+            // Get the current value of the cell
+            let currentValue = cell.getValue();
+            let canTick = cell.getRow().getData().matriculate;
+            checkbox.checked = currentValue === true && canTick;
+            checkbox.disabled = !canTick;
+            if (cell.getRow().getData().archived_status) {
+                checkbox.disabled = true
+                checkbox.checked = false
+            }
+
+            // Handle checkbox change event
+            checkbox.addEventListener("change", function () {
+                if (canTick) {
+                    success(checkbox.checked);
+                } else {
+
+                    checkbox.checked = false;
+
+                }
+            });
+
+            onRendered(function () {
+                cell.getElement().appendChild(checkbox);
+            });
+
+            return checkbox;
+        };
+        let table = new Tabulator("#pannes", {
+            ajaxURL: "{% url 'idr_idm:get_breakdown' %}",
+            ajaxContentType: "json",
+            ajaxParams: {'uid': '{{ uid_client }}'},
+            ajaxConfig: "POST",
+            rowHeight: 40,
+            resizableRows: true,
+            resizableRowGuide: true,
+            editorEmptyValue: '',
+            downloadConfig: {
+                columnHeaders: true, //do not include column headers in downloaded table
+
+                columnGroups: false, //do not include column groups in column headers for downloaded table
+                rowHeaders: false, //do not include row headers in downloaded table
+                rowGroups: false, //do not include row groups in downloaded table
+                columnCalcs: true, //do not include column calcs in downloaded table
+                dataTree: true, //do not include data tree in downloaded table
+            },
+            persistence: {
+                sort: true,
+                filter: false,
+                {#columns: true,#}
+            },
+            persistenceID: "pannePersistence",
+            layout: "fitData",
+            printAsHtml: true,
+            printStyled: true,
+            printRowRange: "all",
+            printHeader: "<h1>Example Table Header<h1>",
+            printFooter: "<h2>Example Table Footer<h2>",
+            footerElement: `<button type='button' class='btn btn-warning btn-sm mr-2' id='reload-table' onClick="reloadPage()"><i class='fas fa-sync-alt'></i></button>`,
+            tooltipsHeader: false,
+            rowFormatter: function (row) {
+                const rowData = row.getData();
+                const start = rowData.start;
+                const leave = rowData.leave;
+
+                if (start) {
+                    if (leave) {
+                        row.getElement().style.backgroundColor = "#1e3b20"; // Add 'active-row' class
+
+                    } else {
+                        row.getElement().style.backgroundColor = "#3b1e2b"; //
+                    }
+                }
+            },
+            rowHeader: {
+                title: `<button type='button' class='btn btn-primary btn-sm' id='add-row' {% if not user.level_1 %}
+                disabled{% endif %} onclick="addRow()"><i class='fas fa-plus'></i></button>`,
+                headerSort: false,
+                resizable: false,
+                width: 45,
+                frozen: true,
+                rowHandle: true,
+                editor: false,
+                formatter: "handle",
+            },
+            movableRows: true,
+            movableColumns: true,
+            history: true,
+            success: function (data) {
+                if (data.status !== 200 && data.status !== 201) {
+                    // Display error message in alert and prevent tickCross change
+                    alert(data.error || "An error occurred while fetching data.");
+                    return; // Exit the function if there's an error
+                }
+                const breakdowns = data.data;
+                table.setData(breakdowns);
+            },
+            headerSortClickElement: 'icon',
+            selectableRangeClearCells: true,
+            columnHeaderVertAlign: "bottom",
+            height: "40vw",
+            renderHorizontal: "virtual",
+            resizableColumnGuide: true,
+            dataTree: true,
+            dataTreeStartExpanded: false,
+            dataTreeFilter: false,
+            dataTreeSort: false,
+            dataTreeSelectPropagate: true,
+            {#dataTreeCollapseElement:"<i class='fas fa-minus-square'></i>",#}
+            {#dataTreeChildField:"childRows",#}
+            initialSort: [
+                {column: "matriculate", dir: "asc"},
+            ],
+            placeholder: "Aucun Donnée",
+            placeholderHeaderFilter: 'Aucun Donnée Correspondent',
+            groupClosedShowCalcs: true,
+            headerSort: true,
+            columnDefaults: {
+                tooltip: true,
+                headerHozAlign: "center",
+                editor: false,
+                resizable: "header",
+            },
+            columns: [
+                {
+                    title: "<code>*</code>",
+                    frozen: true,
+                    resizable: false,
+                    hozAlign: "center",
+                    {% if user.level_1 or user.level_2 or user.level_3 or user.level_4 %}
+                        formatter: "tickCross",
+                        download: false,
+                        editor: tickCrossEditor,
+                        headerSort: false,
+                        cellEdited: function (cell, onRendered, success, cancel) {
+                            let edited = cell.isEdited();
+                            if (edited) {
+                                let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
+                                if (conf) {
+                                    const rowData = cell.getRow().getData();
+                                    if (rowData.uid_name) {
+                                        fetch("{% url 'idr_idm:update_line' %}", {
+                                            method: "POST",
+                                            headers: {
+                                                "Content-Type": "application/json"
+                                            },
+                                            body: JSON.stringify(rowData)
+                                        })
+                                            .then(response => {
+                                                if (!response.ok) {
+                                                    return response.json().then(data => {
+                                                        alert(data.error);
+                                                        throw new Error(data.error); // Throw an error to stop further processing
+                                                    });
+                                                }
+                                                return response.json(); // Parse the JSON response for successful requests
+                                            })
+                                            .then(data => {
+                                                if (data.success) {
+                                                    cell.getRow().update(rowData);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error("Error updating breakdown:", error);
+                                                cancel()
+                                            });
+                                    } else {
+                                        fetch("{% url 'idr_idm:post_line' %}", {
+                                            method: "POST",
+                                            headers: {
+                                                "Content-Type": "application/json"
+                                            },
+                                            body: JSON.stringify(rowData)
+                                        })
+                                            .then(response => {
+                                                if (response.status === 409) {
+                                                    return response.json().then(data => {
+                                                        alert(data.error);
+                                                        location.reload();
+                                                    });
+                                                }
+                                                return response.json(); // Parser la réponse JSON pour les requêtes réussies
+                                            })
+
+                                    }
+                                }
+                            }
+                        }
+                    {% endif %}
+
+                },
+                {
+                    title: "N°",
+                    resizable: false,
+                    formatter: "rownum",
+                    hozAlign: "center",
+                    width: 40,
+                    sorter: "number",
+                    editor: false,
+                    frozen: true,
+                    download: false,
+                    headerSort: false,
+                    {#bottomCalc:"count",#}
+                },
+                {
+                    title: 'Panne {{ name_client|upper }}', columns: [
+                        {
+                            title: "MOIS",
+                            field: "month",
+                            width: 75,
+                            editor: "list",
+                            validator: "required",
+                            frozen: true,
+                            editorParams: {
+                                values: {
+                                    "Janvier": "Janvier",
+                                    "Fevrier": "Février",
+                                    "Mars": "Mars",
+                                    "Avril": "Avril",
+                                    "Mai": "Mai",
+                                    "Juin": "Juin",
+                                    "Juillet": "Juillet",
+                                    "Aout": "Août",
+                                    "Septembre": "Septembre",
+                                    "Octobre": "Octobre",
+                                    "Novembre": "Novembre",
+                                    "Decembre": "Décembre",
+                                    clearable: true
+                                }
+                            }
+
+                        },
+                        {
+                            title: "JDE",
+                            field: "jde",
+                            width: 125,
+                            editor: "input",
+                            frozen: true,
+                        },]
+                },
+                {
+                    title: "ID Rental",
+                    columns: [
+                        {
+                            title: "Immat ou N° série",
+                            field: "matriculate",
+                            width: 150,
+                            {% if user.level_1 %}
+                                editor: "list",
+                            {% endif %}
+                            validator: "required",
+
+                            editorParams: {
+                                placeholderEmpty: "Aucun Machine Disponible",
+                                sort: "asc",
+                                valuesURL: "{% url 'idr_idm:get_all_matriculate' %}",
+                                placeholderLoading: "Chargement...",
+                            },
+                            headerPopupIcon: "<i class='fas fa-filter' title='Filter column'></i>",
+                            headerFilter: emptyHeaderFilter,
+                            headerPopup: headerPopupFormatter,
+                            headerFilterFunc: "like",
+                        },
+                        {
+                            title: "Modèle / Remorque",
+                            field: "model",
+                            {% if user.level_1 %}
+                                editor: "input",
+                            {% endif %}
+
+                            width: 150,
+                        },
+
+                        {
+                            title: "Localisation",
+                            field: "localisation_name",
+                            {% if user.level_1 %}
+                                editor: "list",
+                            {% endif %}
+                            hozAlign: 'right',
+                            editorParams: {
+                                placeholderEmpty: "Aucun Localisation",
+                                autocomplete: "true", allowEmpty: true, listOnEmpty: true,
+                                valuesURL: "{% url 'idr_idm:gat_all_localisation' %}",
+                                placeholderLoading: "Chargement...",
+
+                                formatter: function (value, data, cell) {
+                                    if (value && value.label) {
+                                        return value.label;  // Access and return the label from the value object
+                                    } else {
+                                        return "";
+                                    }
+                                }
+                            },
+                        },
+                        {
+                            title: "Adresse",
+                            field: "address",
+                            {% if user.level_1 %}
+                                editor: "input",
+                            {% endif %}
+
+                            width: 125,
+                        },
+                        {
+                            title: "Début panne",
+                            hozAlign: "right",
+                            field: "start",
+                            width: 100,
+                            sorter: "datetime",
+                            {% if user.level_1 %}
+                                editor: "datetime",
+                            {% endif %}
+                            editorParams: {
+                                format: "dd/MM/yyyy hh:mm:ss",
+                                verticalNavigation: "table",
+                            }
+
+                        },
+                        {
+                            title: "Demande rdv",
+                            field: "appointment",
+                            sorter: "datetime",
+                            width: 100,
+                            {% if user.level_1 %}
+                                editor: "datetime",
+                            {% endif %}
+
+                            editorParams: {
+                                format: "dd/MM/yyyy hh:mm:ss",
+                                verticalNavigation: "table",
+                            }
+
+
+                        },
+                        {
+                            title: "Entrée garage",
+                            field: "enter",
+                            sorter: "datetime",
+                            width: 100,
+                            {% if user.level_1 %}
+                                editor: "datetime",
+                            {% endif %}
+                            editorParams: {
+                                format: "dd/MM/yyyy hh:mm:ss",
+                                verticalNavigation: "table",
+                            }
+                        },
+                        {
+                            title: "DEMANDE DE TRAVAUX",
+                            field: "works",
+                            {% if user.level_1 %}
+                                editor: textareaPopup,
+                            {% endif %}
+
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+
+                            },
+                            accessorDownload: textareaAccessor
+                        },
+                        {
+                            title: "Date de sortie du garage",
+                            field: "leave",
+                            sorter: "datetime",
+                            width: 100,
+                            {% if user.level_1 %}
+                                editor: "datetime",
+                            {% endif %}
+                            editorParams: {
+                                format: "dd/MM/yyyy hh:mm:ss", // the format of the date value stored in the cell
+                                verticalNavigation: "table", //navigate cursor around table without changing the value
+
+                            }
+                        },
+                        {
+                            title: "Km/H Entrée Garage",
+                            field: 'km_enter',
+                            editor: "number",
+                            width: 100,
+                            download: true
+                        },
+                        {
+                            title: "Km/H Sortie Garage",
+                            field: 'km_exit',
+                            editor: "number",
+                            width: 100,
+                            download: true
+                        },
+                    ]
+                },
+                {
+                    title: "Nb Jours Immo",
+                    width: 100,
+                    editor: false,
+                    hozAlign: "right",
+                    download: true,
+                    formatter: calculImmo,
+                },
+                {
+                    title: "SAV ID Motors",
+                    columns: [
+                        {
+                            title: "N° OR (ordre de réparation)",
+                            hozAlign: "right",
+                            field: "order",
+                            width: 100,
+                            {% if user.level_2 %}
+                                editor: "number",
+                            {% endif %}
+                            editorParams: {
+                                min: 0,
+                                max: 100,
+                                elementAttributes: {
+                                    maxlength: "10", //set the maximum character length of the input element to 10 characters
+                                },
+                                mask: "999",
+                                selectContents: true,
+                                verticalNavigation: "table", //up and down arrow keys navigate away from cell without changing value
+                            }
+                        },
+                        {
+                            title: "ETAT PIECES REF",
+                            field: "piece",
+                            {% if user.level_2 %}
+                                editor: textareaPopup,
+                            {% endif %}
+
+                            accessorDownload: textareaAccessor,
+
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                        },
+                        {
+                            title: 'DIAGNOSTICS/TRAVAUX EFFECTUER AUX ATELIER & COMMENTAIRES SAV',
+                            field: 'diagnostics',
+                            {% if user.level_2 %}
+                                editor: textareaPopup,
+                            {% endif %}
+                            accessorDownload: textareaAccessor,
+
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+                            },
+                        },
+                        {
+                            title: "Date prévisionnelle de sortie garage",
+                            field: "prevision",
+                            {% if user.level_2 %}
+                                editor: textareaPopup,
+                            {% endif %}
+                            accessorDownload: textareaAccessor,
+
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+                            },
+                        },
+                    ]
+                },
+                {
+                    title: "Achat et Import ID Motors",
+                    columns: [
+                        {
+                            title: 'COMMENTAIRES ACHATS',
+                            field: 'achats',
+                            {% if user.level_3 %}
+                                editor: textareaPopup,
+                            {% endif %}
+                            accessorDownload: textareaAccessor,
+
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+                            },
+                        },
+                        {
+                            title: 'COMMENTAIRES IMPORT',
+                            field: 'imports',
+                            {% if user.level_3 %}
+                                editor: textareaPopup,
+                            {% endif %}
+                            accessorDownload: textareaAccessor,
+
+                            width: 200,
+                            formatter: function (cell, formatterParams) {
+                                // Get the value from the cell
+                                const value = cell.getValue();
+
+                                // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                                const cleanText = DOMPurify.sanitize(value);
+
+                                // Create a temporary element to remove HTML tags
+                                const tempElement = document.createElement('div');
+                                tempElement.textContent = cleanText;
+
+                                // Return the plain text content
+                                return tempElement.textContent;
+                            },
+                            editorParams: {
+                                selectContents: true,
+                                verticalNavigation: "editor",
+                                shiftEnterSubmit: true,
+                                maskAutoFill: true,
+                            },
+                        },
+                    ]
+                },
+                {
+                    title: "Nb Jours Immo Réelle",
+                    width: 100,
+                    editor: false,
+                    hozAlign: "right",
+                    formatter: calculImmoReel,
+                    download: true,
+                },
+                {
+                    title: "Actif / Non Actif",
+                    field: 'status',
+                    width: 100,
+                    editor: false,
+                    hozAlign: "center",
+                    formatter: stateLine,
+                    formatterParams: { // Define properties for conditional formatting
+                        activeBackgroundColor: "#90EE90", // Light green
+                        inactiveBackgroundColor: "#FFCDD2" // Light red
+                    },
+                    download: true,
+                },
+                {
+                    title: "DECISION",
+                    field: "decision",
+                    {% if user.level_4 %}
+                        editor: textareaPopup,
+                    {% endif %}
+                    accessorDownload: textareaAccessor,
+
+                    width: 200,
+                    formatter: function (cell, formatterParams) {
+                        // Get the value from the cell
+                        const value = cell.getValue();
+
+                        // Use DOMPurify to sanitize the HTML content (optional but recommended for security)
+                        const cleanText = DOMPurify.sanitize(value);
+
+                        // Create a temporary element to remove HTML tags
+                        const tempElement = document.createElement('div');
+                        tempElement.textContent = cleanText;
+
+                        // Return the plain text content
+                        return tempElement.textContent;
+                    },
+                },
+                {
+                    title: "Piece Jointe",
+                    field: 'jointe_count',
+                    width: 100,
+                    formatter: function (cell, formatterParams) {
+                        if (cell.getValue() > 0) {
+                            return '<i class="fas fa-info-circle text-warning"></i>'
+                        }
+                        return ''
+                    },
+                    hozAlign: "center",
+                    {% if user.level_4 %}
+                        editor: uploadPiecePopup,
+                    {% endif %}
+
+                },
+                {
+                    formatter: function (cell, formatterParams) { //plain text value
+                        return "<i class='fa fa-box-archive'></i>";
+                    },
+                    headerSort: false,
+                    frozen: true,
+                    resizable: false,
+                    hozAlign: "center",
+                    download: false,
+                    cellClick: function (e, cell) {
+
+                        let breakdownId = cell.getData().uid_name;
+                        let archived = cell.getData().archived_status;
+                        if (breakdownId && !archived) {
+                            if (confirm("Est-vous sûr de vouloir archiver ceci ?")) {
+
+                                fetch("{% url 'idr_idm:delete_breakdown' %}", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/x-www-form-urlencoded",
+                                        "X-CSRFToken": "{{ csrf_token }}"
+                                    },
+                                    body: "breakdown_id=" + breakdownId
+                                })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            table.deleteRow(cell.getRow());
+
+                                        } else {
+                                            console.error("Error deleting Breakdown:", data.error);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error("Error deleting Breakdown:", error);
+                                    });
+                            }
+
+                        } else if (archived) {
+                            alert("On ne peux pas archiver un dossier archiver")
+                        } else {
+                            table.deleteRow(cell.getRow());
+                        }
+                    }
+                }
+            ],
+            groupBy: function (rowData) {
+                let rowStart = rowData.start;
+                let rowLeave = rowData.leave;
+
+                let val;
+                if (rowStart) {
+                    if (rowLeave) {
+                        val = 'Active';
+                    } else {
+                        val = 'Non Active';
+                    }
+                } else {
+                    val = rowData.status;
+                }
+                return val || "Nouveaux";
+            },
+            groupHeader: function (value, count, data, group) {
+
+                return value + "<span style='color:#d00; margin-left:10px;'>(" + count + " machines)</span>";
+            },
+        });
+        table.on("rowMoved", function (row) {
+            console.log("Row: " + row.getData().matriculate + " has been moved");
+        });
+
+        /*
+       function updateFilter() {
+           let filterVal = fieldEl.options[fieldEl.selectedIndex].value;
+           let typeVal = typeEl.options[typeEl.selectedIndex].value;
+
+           let filter = filterVal;
+
+           if (filterVal === "function") {
+               typeEl.disabled = true;
+               valueEl.disabled = true;
+           } else {
+               typeEl.disabled = false;
+               valueEl.disabled = false;
+           }
+
+           if (filterVal) {
+               table.setFilter(filter, typeVal, valueEl.value);
+           }
+       }
+
+       //Update filters on value change
+       document.getElementById("filter-field").addEventListener("change", updateFilter);
+       document.getElementById("filter-type").addEventListener("change", updateFilter);
+       document.getElementById("filter-value").addEventListener("keyup", updateFilter);
+
+       let fieldEl = document.getElementById("filter-field");
+       let typeEl = document.getElementById("filter-type");
+       let valueEl = document.getElementById("filter-value");
+
+
+       //Clear filters on "Clear Filters" button click
+       document.getElementById("filter-clear").addEventListener("click", function () {
+           fieldEl.value = "";
+           typeEl.value = "=";
+           valueEl.value = "";
+
+           table.clearFilter();
+       });
+       */
+    </script>
+{% endblock %}

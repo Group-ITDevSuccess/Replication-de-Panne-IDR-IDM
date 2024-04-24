@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'guard.apps.GuardConfig',
     'apps.idr_idm.apps.IdrIdmConfig',
+    'apps.detail.apps.DetailConfig',
     'django_browser_reload',
 
 ]
@@ -82,6 +83,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.context_processors.context_processor_navbar'
             ],
         },
     },
@@ -183,7 +185,6 @@ else:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
-
 
 LOGIN_REDIRECT_URL = '/'
 SERVER_LDAP = 'ldap://ad-server-1'

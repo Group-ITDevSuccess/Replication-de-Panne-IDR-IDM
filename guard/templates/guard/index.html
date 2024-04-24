@@ -276,7 +276,6 @@
                 {
                     title: "<code>*</code> Autoriser",
                     field: 'autoriser',
-                    resizable: false,
                     hozAlign: "center",
                     formatter: "tickCross",
                     editor: true,
@@ -285,7 +284,6 @@
                 },
                 {
                     title: "<code>*</code> ID Rental",
-                    resizable: false,
                     field: 'level_1',
                     hozAlign: "center",
                     formatter: "tickCross",
@@ -295,7 +293,6 @@
                 },
                 {
                     title: "<code>*</code> SAV ID Motors",
-                    resizable: false,
                     field: 'level_2',
                     hozAlign: "center",
                     formatter: "tickCross",
@@ -306,7 +303,6 @@
                 },
                 {
                     title: "<code>*</code> Import et Export ID Motors",
-                    resizable: false,
                     field: 'level_3',
                     hozAlign: "center",
                     formatter: "tickCross",
@@ -317,7 +313,6 @@
                 },
                 {
                     title: "<code>*</code> Direction",
-                    resizable: false,
                     field: 'level_4',
                     hozAlign: "center",
                     formatter: "tickCross",
@@ -374,18 +369,32 @@
             movableRowsReceiver: 'add',
             movableRowsSender: "delete",
             rowHeader: {
+                headerSort: false,
                 resizable: false,
-                frozen: true,
-                width: 40,
-                hozAlign: "center",
-                formatter: "rownum",
-                cssClass: "range-header-col"
+                minWidth: 30,
+                width: 30,
+                rowHandle: true,
+                formatter: "handle"
             },
             placeholder: "Aucun Client",  // Assuming French for "No Clients"
             ajaxURL: "{% url 'guard:get_all_client_not_used_json' %}",
             ajaxContentType: "json",
             columns: [
-                {title: "Nom", field: "name"},
+
+                {
+                    title: 'Liste des clients', columns: [
+                        {
+                            resizable: false,
+                            frozen: true,
+                            width: 40,
+                            hozAlign: "center",
+                            formatter: "rownum",
+                            headerSort: false,
+                            cssClass: "range-header-col"
+                        },
+                        {title: "Nom", field: "name"},
+                    ]
+                }
             ],
         });
 
@@ -399,9 +408,27 @@
             movableRowsConnectedTables: "#table-sender",
             movableRowsReceiver: "add",
             movableRowsSender: "delete",
+            rowHeader: {
+                headerSort: false,
+                resizable: false,
+                minWidth: 30,
+                width: 30,
+                rowHandle: true,
+                formatter: "handle"
+            },
             columns: [
+
                 {
-                    title: 'Liste des application', columns: [
+                    title: 'Liste des applications', columns: [
+                        {
+                            resizable: false,
+                            frozen: true,
+                            width: 40,
+                            hozAlign: "center",
+                            formatter: "rownum",
+                            headerSort: false,
+                            cssClass: "range-header-col"
+                        },
                         {title: "Nom", field: "name"},
                     ]
                 }
