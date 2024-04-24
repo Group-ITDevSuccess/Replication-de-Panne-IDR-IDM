@@ -33,7 +33,8 @@ def index(request):
 @csrf_exempt
 def all_users_json(request):
     users = CustomUser.objects.all().annotate(id=F('uid')).values(
-        'id', 'username', 'first_name', 'last_name', 'email', 'level_1', 'level_2', 'level_3', 'level_4', 'autoriser',
+        'id', 'username', 'first_name', 'last_name', 'email', 'level_1', 'level_2', 'level_3', 'level_4', 'level_5',
+        'autoriser',
         'is_active',
         'is_staff', 'is_superuser', 'date_joined'
     )

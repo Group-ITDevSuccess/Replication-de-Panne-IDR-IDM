@@ -391,20 +391,16 @@
             ajaxContentType: "json",
             columns: [
 
-                {
-                    title: 'Liste des clients', columns: [
-                        {
-                            resizable: false,
-                            frozen: true,
-                            width: 40,
-                            hozAlign: "center",
-                            formatter: "rownum",
-                            headerSort: false,
-                            cssClass: "range-header-col"
-                        },
-                        {title: "Nom", field: "name"},
-                    ]
-                }
+            {
+                resizable: false,
+                frozen: true,
+                width: 40,
+                hozAlign: "center",
+                formatter: "rownum",
+                headerSort: false,
+                cssClass: "range-header-col"
+            },
+            {title: "Nom", field: "name"},
             ],
         });
 
@@ -429,7 +425,7 @@
             columns: [
 
                 {
-                    title: 'Liste des applications', columns: [
+                    title: 'Liste des Clients Favories', columns: [
                         {
                             resizable: false,
                             frozen: true,
