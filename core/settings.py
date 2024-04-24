@@ -150,10 +150,10 @@ DATE_INPUT_FORMATS = "%d/%m/%Y"
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'static_files')
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",

@@ -67,30 +67,30 @@
 
 
     <script type="text/javascript">
-	function calculImmoReel(cell) {
-        const rowData = cell.getRow().getData();
+        function calculImmoReel(cell) {
+            const rowData = cell.getRow().getData();
 
-        const formattedStartDate = formatDate(rowData.start);
-        const formattedEndDate = formatDate(rowData.leave);
+            const formattedStartDate = formatDate(rowData.start);
+            const formattedEndDate = formatDate(rowData.leave);
 
-        if (formattedStartDate && formattedEndDate) {
-            const startDate = new Date(formattedStartDate);
-            const endDate = new Date(formattedEndDate);
-            if (isNaN(startDate.getTime())) {
-                return "";
+            if (formattedStartDate && formattedEndDate) {
+                const startDate = new Date(formattedStartDate);
+                const endDate = new Date(formattedEndDate);
+                if (isNaN(startDate.getTime())) {
+                    return "";
+                }
+                if (isNaN(endDate.getTime())) {
+                    return "";
+                }
+
+                const diffInMs = endDate.getTime() - startDate.getTime();
+
+                return Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
             }
-            if (isNaN(endDate.getTime())) {
-                return "";
-            }
+            return ''
 
-            const diffInMs = endDate.getTime() - startDate.getTime();
-
-            return Math.floor(diffInMs / (1000 * 60 * 60 * 24)) + 1;
         }
-        return ''
-
-    }
-    function uploadPiecePopup(cell, onRendered, success, cancel) {
+        function uploadPiecePopup(cell, onRendered, success, cancel) {
         {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
         const uid = cell.getData().uid_name;
         if (uid) {
@@ -158,114 +158,142 @@
             })
 
              let pieces = new Tabulator(`#${tablePiece}`, {
-            ajaxURL: "{% url 'idr_idm:get_file_jointe' %}", //ajax URL
-            ajaxContentType: "json",
-            columnDefaults: {
-                tooltip: true,
-                headerHozAlign: "center",
-                editor: false,
-                resizable: "header",
-            },
-            persistence: {
-                sort: true,
-                filter: false,
-                {#columns: true,#}
-            },
-            headerSort: true,
-            history: true,
-            headerSortClickElement: 'icon',
-            selectableRangeClearCells: true,
-            columnHeaderVertAlign: "bottom",
-            ajaxConfig: "POST",
-            ajaxParams: {uid: uid},
-            success: function (data) {
-                if (data.status !== 200 && data.status !== 201) {
-                    // Display error message in alert and prevent tickCross change
-                    alert(data.error || "An error occurred while fetching data.");
-                    return; // Exit the function if there's an error
-                }
-                const piece = data.data;
-                console.log(data)
-                table.setData(piece);
-            },
-            progressiveLoad: "load",
-            progressiveLoadDelay: 200,
-            layout: "fitDataStretch",
-            height: "200px",
-            placeholder: "Aucun Pièce Jointe",
-            placeholderHeaderFilter: 'Aucun Pièce Jointe Correspondent',
-            rowHeight: 40,
-            resizableRows: true,
-            resizableRowGuide: true,
-            rowHeader: {
-                formatter: "rownum",
-                headerSort: false,
-                hozAlign: "center",
-                resizable: false,
-                frozen: true
-            },
-            columns: [
-                {title: "Titre", field: "name", headerSort: true, width: 100,},
-                {title: "Nom du Fichier", field: "fichier", headerSort: true, width: 100,},
-                {title: "Acteur", field: "acteur", headerSort: true, width: 100,},
-                {
-                    title: "Date",
-                    field: "created_at",
-                    hozAlign: "center",
-                    sorter: "date",
-                    headerSort: true,
-                    width: 125
+                ajaxURL: "{% url 'idr_idm:get_file_jointe' %}", //ajax URL
+                ajaxContentType: "json",
+                columnDefaults: {
+                    tooltip: true,
+                    headerHozAlign: "center",
+                    editor: false,
+                    resizable: "header",
                 },
-                {
-                    title: 'Action',
-                    formatter: function (cell, formatterParams) { //plain text value
-                        return "<i class='fa fa-trash-arrow-up'></i>";
-                    },
+                persistence: {
+                    sort: true,
+                    filter: false,
+                    {#columns: true,#}
+                },
+                headerSort: true,
+                history: true,
+                headerSortClickElement: 'icon',
+                selectableRangeClearCells: true,
+                columnHeaderVertAlign: "bottom",
+                ajaxConfig: "POST",
+                ajaxParams: {uid: uid},
+                success: function (data) {
+                    if (data.status !== 200 && data.status !== 201) {
+                        // Display error message in alert and prevent tickCross change
+                        alert(data.error || "An error occurred while fetching data.");
+                        return; // Exit the function if there's an error
+                    }
+                    const piece = data.data;
+                    console.log(data)
+                    table.setData(piece);
+                },
+                progressiveLoad: "load",
+                progressiveLoadDelay: 200,
+                layout: "fitDataStretch",
+                height: "200px",
+                placeholder: "Aucun Pièce Jointe",
+                placeholderHeaderFilter: 'Aucun Pièce Jointe Correspondent',
+                rowHeight: 40,
+                resizableRows: true,
+                resizableRowGuide: true,
+                rowHeader: {
+                    formatter: "rownum",
                     headerSort: false,
-                    frozen: true,
-                    resizable: false,
                     hozAlign: "center",
-                    download: false,
-                    cellClick: function (e, cell) {
+                    resizable: false,
+                    frozen: true
+                },
+                columns: [
+                    {title: "Nom du Fichier", field: "name", headerSort: true, width: 100,},
+                    {title: "Acteur", field: "acteur", headerSort: true, width: 100,},
+                    {
+                        title: "Date",
+                        field: "created_at",
+                        hozAlign: "center",
+                        sorter: "date",
+                        headerSort: true,
+                        width: 125
+                    },
+                    {title: "Télécharger",
+                        frozen: true,
+                        resizable: false,
+                        hozAlign: "center",
+                        download: false,
+                        formatter: function (cell, formatterParams) {
+                            return "<i class='fa fa-file-download'></i>";
+                        },
+                        headerSort: false, width: 40, cellClick: function(e, cell) {
+                        $.ajax({
+                            type: "POST",
+                            url: "{% url 'idr_idm:download_file'  %}",
+                            data: {
+                                'filename': cell.getData().fichier,
+                                'name': cell.getData().name,
+                            },
+                            success: function(data, textStatus, jqXHR) {
+                                // Gérer la réponse du serveur, par exemple, ouvrir une boîte de dialogue de téléchargement
+                                console.log("Fichier téléchargé avec succès !");
+                            },
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                // Gérer les erreurs de requête
+                                console.error("Erreur lors du téléchargement du fichier :", errorThrown);
+                            }
+                        });
 
-                        let fileId = cell.getData().uid;
-                        let user = ('{{ user.username }}' === cell.getData().acteur);
-                        if (fileId && user) {
-                            if (confirm("Est-vous sûr de vouloir supprimer ce piece jointe ceci ?")) {
+                        }
+                    },
 
-                                fetch("{% url 'idr_idm:delete_jointe' %}", {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/x-www-form-urlencoded",
-                                        "X-CSRFToken": "{{ csrf_token }}"
-                                    },
-                                    body: new URLSearchParams({
-                                        'uid_breakdown': uid,
-                                        'uid_jointe': fileId,
+                    {
+                        title: 'Action',
+                        formatter: function (cell, formatterParams) { //plain text value
+                            return "<i class='fa fa-trash-arrow-up'></i>";
+                        },
+                        headerSort: false,
+                        frozen: true,
+                        resizable: false,
+                        hozAlign: "center",
+                        download: false,
+                        cellClick: function (e, cell) {
+
+                            let fileId = cell.getData().uid;
+                            let user = ('{{ user.username }}' === cell.getData().acteur);
+                            if (fileId && user) {
+                                if (confirm("Est-vous sûr de vouloir supprimer ce piece jointe ceci ?")) {
+
+                                    fetch("{% url 'idr_idm:delete_jointe' %}", {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/x-www-form-urlencoded",
+                                            "X-CSRFToken": "{{ csrf_token }}"
+                                        },
+                                        body: new URLSearchParams({
+                                            'uid_breakdown': uid,
+                                            'uid_jointe': fileId,
+                                        })
                                     })
-                                })
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        if (data.success) {
-                                            pieces.deleteRow(cell.getRow());
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                pieces.deleteRow(cell.getRow());
 
-                                        } else {
-                                            console.error("Error deleting Breakdown:", data.error);
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error("Error deleting Breakdown:", error);
-                                    });
+                                            } else {
+                                                console.error("Error deleting Breakdown:", data.error);
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error("Error deleting Breakdown:", error);
+                                        });
+                                }
+
+                            } else {
+                                alert("Vous n'ête pas celui qui a uploader ce fichier")
                             }
 
-                        } else {
-                            alert("Vous n'ête pas celui qui a uploader ce fichier")
                         }
-
                     }
-                }
-            ]
-        });
+                ]
+            });
 
 
             $(modalElement).on('hide.bs.modal', () => {
@@ -694,14 +722,14 @@
                         {
                             title: "Km/H Entrée Garage",
                             field: 'km_enter',
-                            editor:"number",
+                            editor: "number",
                             width: 100,
                             download: true
                         },
                         {
                             title: "Km/H Sortie Garage",
                             field: 'km_exit',
-                            editor:"number",
+                            editor: "number",
                             width: 100,
                             download: true
                         },
@@ -937,7 +965,7 @@
                 {
                     title: "Piece Jointe",
                     field: 'jointe_count',
-					width : 100,
+                    width: 100,
                     formatter: function (cell, formatterParams) {
                         if (cell.getValue() > 0) {
                             return '<i class="fas fa-info-circle text-warning"></i>'

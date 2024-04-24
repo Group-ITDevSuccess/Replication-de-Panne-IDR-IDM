@@ -2,7 +2,7 @@ import json
 import os
 import re
 import uuid
-
+import urllib.parse
 import pytz
 
 from datetime import datetime, date
@@ -11,11 +11,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction, IntegrityError
 from django.db.models.functions import Cast
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, FileResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Q, Subquery, Count, FloatField
+
+from core import settings
 from .form import MachineForm, ClientForm
 from .models import MachineIdrIdm, BreakdownIdrIdm, Localisation, Client, Jointe, Historic
 from utils.script import write_log, are_valid_uuids
@@ -107,6 +109,29 @@ def upload_file(request):
         except KeyError:
             return JsonResponse({'error': 'No image uploaded'}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+@csrf_exempt
+@login_required
+def download_file(request):
+    print(request.POST)
+    try:
+        filename = request.POST.get('filename')
+        jointe = Jointe.objects.get(fichier__exact=filename)
+        path = os.path.join(settings.MEDIA_ROOT, filename)
+        write_log(path)
+        if os.path.exists(path) and jointe.fichier:
+            name = urllib.parse.quote(jointe.name)
+            response = FileResponse(open(path, 'rb'), as_attachment=True)  # Assurez-vous d'utiliser le bon content_type
+            response['Content-Disposition'] = f'attachment; filename="{name}_{filename}"'
+            response['Content-Length'] = os.path.getsize(path)
+            print(f"File send : {response} !")
+            return response
+        else:
+            return HttpResponse("File not found", status=404)
+    except Exception as e:
+        write_log(str(e))
+        return HttpResponse("File not found", status=404)
 
 
 @csrf_exempt
