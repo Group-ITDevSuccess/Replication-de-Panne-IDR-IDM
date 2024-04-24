@@ -1,7 +1,7 @@
 {% load static %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a class="navbar-brand" href="{% url 'idr_idm:index' %}">
-        <img src="{% static 'img/logo-inviso.ico' %}" width="30" height="30" class="d-inline-block align-top" alt=""
+        <img src="{% static 'img/ID Rental.svg' %}" width="30" height="30" class="d-inline-block align-top" alt=""
              loading="lazy">
     </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
@@ -12,14 +12,22 @@
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav mr-auto">
             <li class="nav-item {% if path == '/' %}active{% endif %}">
-                <a class="nav-link" href="{% url 'idr_idm:index' %}">IDR-IDM <span
+                <a class="nav-link" href="{% url 'idr_idm:index' %}">GLOBAL <span
                         class="sr-only">(current)</span></a>
             </li>
+            {% for nav in navs %}
+                <li class="nav-item {% if uid_client == nav.uid %}active{% endif %}">
+                    <a class="nav-link" href="{% url 'idr_idm:details' nav.uid %}"><i class="fas fa-star text-warning"></i>
+                        IDR-{{ nav.name|upper }}</a>
+                </li>
+            {% endfor %}
             {% if user.is_staff %}
                 <li class="nav-item {% if path == '/accounts/administrations/' %}active{% endif %} disabled" disabled>
-                    <a class="nav-link " href="{% url 'guard:index' %}" tabindex="-1" >Administration</a>
+                    <a class="nav-link " href="{% url 'guard:index' %}" tabindex="-1">Administration</a>
                 </li>
             {% endif %}
+
+
         </ul>
         {% if path == '/' %}
             <div class="form-inline my-2 my-lg-0">

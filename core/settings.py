@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 if DEBUG:
     # SECURITY WARNING: keep the secret key used in production secret!
@@ -82,6 +82,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.context_processors.context_processor_navbar'
             ],
         },
     },
@@ -148,10 +149,10 @@ DATE_INPUT_FORMATS = "%d/%m/%Y"
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'static_files')
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
@@ -183,7 +184,6 @@ else:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
-
 
 LOGIN_REDIRECT_URL = '/'
 SERVER_LDAP = 'ldap://ad-server-1'

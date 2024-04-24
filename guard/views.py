@@ -10,6 +10,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import F
 from django.views.decorators.csrf import csrf_exempt
 
+from apps.idr_idm.models import Client
 from utils.script import ldap_login_connection, write_log, are_valid_uuids
 from .forms import LoginForm, ProfileForm
 from .models import CustomUser, CustomPermission
@@ -32,13 +33,55 @@ def index(request):
 @csrf_exempt
 def all_users_json(request):
     users = CustomUser.objects.all().annotate(id=F('uid')).values(
-        'id', 'username', 'first_name', 'last_name', 'email', 'level_1', 'level_2', 'level_3', 'level_4', 'autoriser',
+        'id', 'username', 'first_name', 'last_name', 'email', 'level_1', 'level_2', 'level_3', 'level_4', 'level_5',
+        'autoriser',
         'is_active',
         'is_staff', 'is_superuser', 'date_joined'
     )
     data = list(users)
 
     return JsonResponse(data, safe=False)
+
+
+@login_required
+@csrf_exempt
+def get_all_client_not_used_json(request):
+    client = Client.objects.filter(used__exact=False).values('uid', 'name')
+    data = list(client)
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@csrf_exempt
+def get_all_client_used_json(request):
+    client = Client.objects.filter(used__exact=True).values('uid', 'name')
+    data = list(client)
+    return JsonResponse(data, safe=False)
+
+
+@login_required
+@csrf_exempt
+def update_status_client(request):
+    # print(f"BODY : {request.body}")
+    data = {}
+    try:
+        payload = json.loads(request.body)
+        uid = payload.get('uid')
+        if uid:
+            client = Client.objects.get(uid=uid)
+            status = client.used
+            client.used = not status
+            client.save()
+            data = {
+                'uid': client.uid,
+                'name': client.name
+            }
+    except Client.DoesNotExist:
+        data = {'error': 'Client not found'}
+    except Exception as e:
+        write_log(str(e))
+        data = {'error': str(e)}
+    return JsonResponse(data)
 
 
 @csrf_exempt
@@ -96,7 +139,7 @@ def create_user_json(request):
                 setattr(user, key, value)
             user.save()
             data = list(CustomUser.objects.filter(uid__exact=user.uid).annotate(id=F('uid')).values(
-                'id', 'username', 'first_name', 'last_name', 'level_1', 'level_2', 'level_3', 'level_4',
+                'id', 'username', 'first_name', 'last_name', 'level_1', 'level_2', 'level_3', 'level_4', 'level_5',
                 'autoriser',
                 'is_active',
                 'is_staff', 'is_superuser',

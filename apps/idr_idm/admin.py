@@ -2,7 +2,7 @@ from django.contrib import admin
 from import_export import resources, fields
 from import_export.admin import ImportExportModelAdmin
 
-from .models import MachineIdrIdm, Client, BreakdownIdrIdm, Localisation
+from .models import MachineIdrIdm, Client, BreakdownIdrIdm, Localisation, Jointe
 
 
 class LocalisationResource(resources.ModelResource):
@@ -35,7 +35,7 @@ company_fieldsets = (
 
 machine_fieldsets = (
     (None, {
-        'fields': ('matriculate', 'model',  'breakdown')
+        'fields': ('matriculate', 'model', 'breakdown')
     }),
     ('Dates', {
         'fields': ('created_at', 'updated_at'),
@@ -66,7 +66,8 @@ client_fieldsets = (
 breakdown_fieldsets = (
     (None, {
         'fields': (
-            'localisation', 'client', 'start', 'archived', 'appointment', 'enter', 'order', 'prevision', 'piece', 'diagnostics',
+            'localisation', 'client', 'start', 'archived', 'appointment', 'enter', 'order', 'prevision', 'piece',
+            'diagnostics',
             'achats', 'imports', 'decision')
     }),
     ('Dates', {
@@ -89,6 +90,13 @@ class MachineAdmin(admin.ModelAdmin):
 class ClientAdmin(admin.ModelAdmin):
     fieldsets = client_fieldsets
     readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(Jointe)
+class JointeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'type', 'acteur')
+    list_filter = ('type',)
+    search_fields = ('name', 'acteur')
 
 
 @admin.register(BreakdownIdrIdm)

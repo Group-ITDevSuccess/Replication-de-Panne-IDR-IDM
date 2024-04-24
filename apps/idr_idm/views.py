@@ -2,7 +2,7 @@ import json
 import os
 import re
 import uuid
-
+import urllib.parse
 import pytz
 
 from datetime import datetime, date
@@ -11,11 +11,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction, IntegrityError
 from django.db.models.functions import Cast
-from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.http import JsonResponse, HttpResponse, FileResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Q, Subquery, Count, FloatField
+
+from core import settings
 from .form import MachineForm, ClientForm
 from .models import MachineIdrIdm, BreakdownIdrIdm, Localisation, Client, Jointe, Historic
 from utils.script import write_log, are_valid_uuids
@@ -61,10 +63,26 @@ def format_datetime(value):
 
 @login_required
 def index(request):
+
     context = {
         'path': request.path,
         'form_add_machine': MachineForm(),
-        'form_add_client': ClientForm()
+        'form_add_client': ClientForm(),
+    }
+    return render(request, 'idr_idm/index.html', context)
+
+
+@login_required
+def detail(request, uid):
+    client = get_object_or_404(Client, uid=uid, used__exact=True)
+    uid = client.uid
+    name = client.name
+    context = {
+        'path': request.path,
+        'form_add_machine': MachineForm(),
+        'form_add_client': ClientForm(),
+        'uid_client': uid,
+        'name_client': name
     }
     return render(request, 'idr_idm/index.html', context)
 
@@ -75,12 +93,15 @@ def upload_file(request):
     if request.method == 'POST' and request.FILES:
         try:
             uploaded_files = request.FILES.getlist('files', None)
+            column = request.POST.get('column', None)
+
             id_param = request.POST.get('id', None)
             print(f"POST: {request.POST}, FILE: {request.FILES}, {uploaded_files}, {id_param}")
 
-            if uploaded_files is not None and id_param is not None:
+            if uploaded_files is not None and id_param is not None and column is not None:
                 try:
                     breakdown = BreakdownIdrIdm.objects.get(uid__exact=id_param)
+                    column = str(column).replace('JOINTE ', '').upper()
                     for uploaded_file in uploaded_files:
                         # Générer un UID unique pour le nom du fichier
                         uid = str(uuid.uuid4())
@@ -95,7 +116,7 @@ def upload_file(request):
 
                         # Créer l'objet Jointe et l'associer à Breakdown
                         fichier = Jointe.objects.create(name=uploaded_file.name, fichier=new_filename,
-                                                        acteur=request.user.username)
+                                                        acteur=request.user.username, type=column)
                         breakdown.jointe.add(fichier)
 
                     breakdown.save()
@@ -110,15 +131,41 @@ def upload_file(request):
 
 
 @csrf_exempt
+@login_required
+def download_file(request):
+    print(request.POST)
+    try:
+        filename = request.POST.get('filename')
+        jointe = Jointe.objects.get(fichier__exact=filename)
+        path = os.path.join(settings.MEDIA_ROOT, filename)
+        write_log(path)
+        if os.path.exists(path) and jointe.fichier:
+            name = urllib.parse.quote(jointe.name)
+            response = FileResponse(open(path, 'rb'), as_attachment=True)  # Assurez-vous d'utiliser le bon content_type
+            response['Content-Disposition'] = f'attachment; filename="{name}_{filename}"'
+            response['Content-Length'] = os.path.getsize(path)
+            print(f"File send : {response} !")
+            return response
+        else:
+            return HttpResponse("File not found", status=404)
+    except Exception as e:
+        write_log(str(e))
+        return HttpResponse("File not found", status=404)
+
+
+@csrf_exempt
 def get_file_jointe(request):
     gets = json.loads(request.body.decode('utf-8'))
     uid = gets.get('uid', None)
     page = gets.get('page', 0)
+    column = gets.get('column', 0)
+    column = str(column).replace('JOINTE ', '')
     datas = []
     if uid:
         try:
             breakdown = BreakdownIdrIdm.objects.get(uid__exact=uid)
-            jointe = breakdown.jointe.all().values('uid', 'name', 'fichier', 'acteur', 'created_at')
+            jointe = breakdown.jointe.filter(type__iexact=column).values('uid', 'name', 'fichier', 'acteur', 'created_at')
+
             datas = [{key: format_value(value) for key, value in data.items()} for data in jointe]
         except BreakdownIdrIdm.DoesNotExist:
             print("Breakdown Introuvable !")
@@ -148,8 +195,55 @@ def delete_jointe(request):
 @csrf_exempt
 @login_required
 def get_all_machineidridm_with_breakdown_false(request):
-    if request.method == 'GET':
-        machines = MachineIdrIdm.objects.filter(breakdown__archived=False, breakdown__isnull=False).annotate(
+    if request.method == 'POST':
+        data = json.loads(request.body.decode('utf-8'))
+        uid = data.get('uid', None)
+    else:
+        uid = None
+    if uid is not None:
+        query = MachineIdrIdm.objects.filter(breakdown__client__uid=uid, breakdown__archived=False,
+                                             breakdown__isnull=False)
+    else:
+        query = MachineIdrIdm.objects.filter(breakdown__archived=False, breakdown__isnull=False)
+    machines = query.annotate(
+        localisation_name=F('breakdown__localisation__locality'),
+        client_name=F('breakdown__client__name'),
+        appointment=F('breakdown__appointment'),
+        enter=F('breakdown__enter'),
+        order=F('breakdown__order'),
+        km_enter=F('breakdown__km_enter'),
+        km_exit=F('breakdown__km_exit'),
+        start=F('breakdown__start'),
+        leave=F('breakdown__leave'),
+        works=F('breakdown__works'),
+        prevision=F('breakdown__prevision'),
+        piece=F('breakdown__piece'),
+        diagnostics=F('breakdown__diagnostics'),
+        achats=F('breakdown__achats'),
+        imports=F('breakdown__imports'),
+        decision=F('breakdown__decision'),
+        uid_name=F('breakdown__uid'),
+        month=F('breakdown__month'),
+        jde=F('breakdown__jde'),
+        address=F('breakdown__address'),
+        no_achat=F('breakdown__no_achat'),
+        no_sav=F('breakdown__no_sav'),
+        no_import=F('breakdown__no_import'),
+        archived_status=F('breakdown__archived'),
+        jointe_count=Count('breakdown__jointe')
+    ).values(
+        'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
+        'appointment', 'enter', 'order', 'leave',
+        'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no_achat', 'no_import','no_sav',
+        'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
+    )
+
+    breakdowns_list = [{key: format_value(value) for key, value in machine.items()} for machine in machines]
+    datas = []
+    for items_breakdown in breakdowns_list:
+        matricule = items_breakdown.get('matriculate')
+        breakdowns_archived = MachineIdrIdm.objects.filter(breakdown__machineidridm__matriculate=matricule,
+                                                           breakdown__archived=True).annotate(
             localisation_name=F('breakdown__localisation__locality'),
             client_name=F('breakdown__client__name'),
             appointment=F('breakdown__appointment'),
@@ -167,62 +261,26 @@ def get_all_machineidridm_with_breakdown_false(request):
             imports=F('breakdown__imports'),
             decision=F('breakdown__decision'),
             uid_name=F('breakdown__uid'),
+            archived_status=F('breakdown__archived'),
             month=F('breakdown__month'),
             jde=F('breakdown__jde'),
             address=F('breakdown__address'),
-            no=F('breakdown__no'),
-            archived_status=F('breakdown__archived'),
+            no_achat=F('breakdown__no_achat'),
+            no_sav=F('breakdown__no_sav'),
+            no_import=F('breakdown__no_import'),
             jointe_count=Count('breakdown__jointe')
         ).values(
             'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
             'appointment', 'enter', 'order', 'leave',
-            'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no',
+            'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no_achat', 'no_import','no_sav',
             'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
         )
+        if breakdowns_archived:
+            items_breakdown['_children'] = [{key: format_value(value) for key, value in machine.items()} for machine
+                                            in breakdowns_archived]
 
-        breakdowns_list = [{key: format_value(value) for key, value in machine.items()} for machine in machines]
-        datas = []
-        for items_breakdown in breakdowns_list:
-            matricule = items_breakdown.get('matriculate')
-            breakdowns_archived = MachineIdrIdm.objects.filter(breakdown__machineidridm__matriculate=matricule,
-                                                               breakdown__archived=True).annotate(
-                localisation_name=F('breakdown__localisation__locality'),
-                client_name=F('breakdown__client__name'),
-                appointment=F('breakdown__appointment'),
-                enter=F('breakdown__enter'),
-                order=F('breakdown__order'),
-                km_enter=F('breakdown__km_enter'),
-                km_exit=F('breakdown__km_exit'),
-                start=F('breakdown__start'),
-                leave=F('breakdown__leave'),
-                works=F('breakdown__works'),
-                prevision=F('breakdown__prevision'),
-                piece=F('breakdown__piece'),
-                diagnostics=F('breakdown__diagnostics'),
-                achats=F('breakdown__achats'),
-                imports=F('breakdown__imports'),
-                decision=F('breakdown__decision'),
-                uid_name=F('breakdown__uid'),
-                archived_status=F('breakdown__archived'),
-                month=F('breakdown__month'),
-                jde=F('breakdown__jde'),
-                address=F('breakdown__address'),
-                no=F('breakdown__no'),
-                jointe_count=Count('breakdown__jointe')
-            ).values(
-                'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
-                'appointment', 'enter', 'order', 'leave',
-                'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no',
-                'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
-            )
-            if breakdowns_archived:
-                items_breakdown['_children'] = [{key: format_value(value) for key, value in machine.items()} for machine
-                                                in breakdowns_archived]
-
-            datas.append(items_breakdown)
-        return JsonResponse(datas, status=200, safe=False)
-    else:
-        return JsonResponse({'error': 'Méthode non autorisée.'}, status=405)
+        datas.append(items_breakdown)
+    return JsonResponse(datas, status=200, safe=False)
 
 
 @csrf_exempt
@@ -377,8 +435,9 @@ def create_machine(request):
 
 
 @login_required
-def get_all_machines_in_table(request):
+def get_all_machines_in_table(request, uid=None):
     machines_assigned = BreakdownIdrIdm.objects.filter(archived=False).values('machine__uid')
+
     machines = MachineIdrIdm.objects.exclude(uid__in=Subquery(machines_assigned))
 
     machines_data = []
