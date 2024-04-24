@@ -289,9 +289,7 @@
 
             // Get the current value of the cell
             let currentValue = cell.getValue();
-            // Check if both matriculate and model fields are not empty
             let canTick = cell.getRow().getData().matriculate;
-            // Set the checkbox state based on the current value and allowed state
             checkbox.checked = currentValue === true && canTick;
             checkbox.disabled = !canTick;
             if (cell.getRow().getData().archived_status) {
@@ -492,6 +490,39 @@
                     {#bottomCalc:"count",#}
                 },
                 {
+                    title: "MOIS",
+                    field: "month",
+                    width: 75,
+                    editor: "list",
+                    validator: "required",
+                    frozen: true,
+                    editorParams: {
+                        values: {
+                            "Janvier": "Janvier",
+                            "Fevrier": "Février",
+                            "Mars": "Mars",
+                            "Avril": "Avril",
+                            "Mai": "Mai",
+                            "Juin": "Juin",
+                            "Juillet": "Juillet",
+                            "Aout": "Août",
+                            "Septembre": "Septembre",
+                            "Octobre": "Octobre",
+                            "Novembre": "Novembre",
+                            "Decembre": "Décembre",
+                            clearable: true
+                        }
+                    }
+
+                },
+                {
+                    title: "JDE",
+                    field: "jde",
+                    width: 125,
+                    editor: "input",
+                    frozen: true,
+                },
+                {
                     title: "ID Rental",
                     columns: [
                         {
@@ -565,6 +596,15 @@
                                     }
                                 }
                             },
+                        },
+                        {
+                            title: "Adresse",
+                            field: "address",
+                            {% if user.level_1 %}
+                                editor: "input",
+                            {% endif %}
+
+                            width: 125,
                         },
                         {
                             title: "Début panne",

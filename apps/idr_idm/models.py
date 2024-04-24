@@ -55,8 +55,14 @@ class MachineIdrIdm(BaseModel):
 
 
 class Jointe(BaseModel):
+    TYPE = (
+        ('ID Rental', 'ID Rental'),
+        ('SAV ID Motors', 'SAV ID Motors'),
+        ('Achat Import ID Rental', 'Achat Import ID Rental'),
+    )
     name = models.CharField(max_length=255)
     fichier = models.FileField(upload_to='media/')
+    type = models.CharField(choices=TYPE, max_length=150, null=True, blank=True)
     acteur = models.CharField(max_length=150, null=True, blank=True, editable=False)
 
     def __str__(self):
@@ -74,6 +80,24 @@ class Historic(BaseModel):
 
 
 class BreakdownIdrIdm(BaseModel):
+    MONTH = [
+        ('Janvier', 'Janvier'),
+        ('Fevrier', 'Février'),
+        ('Mars', 'Mars'),
+        ('Avril', 'Avril'),
+        ('Mai', 'Mai'),
+        ('Juin', 'Juin'),
+        ('Juillet', 'Juillet'),
+        ('Aout', 'Août'),
+        ('Septembre', 'Septembre'),
+        ('Octobre', 'October'),
+        ('Novembre', 'Novembre'),
+        ('Decembre', 'Décembre')
+    ]
+    month = models.CharField(choices=MONTH, null=True, blank=True, max_length=75, verbose_name='Month')
+    jde = models.CharField(null=True, blank=True, max_length=50, verbose_name='JDE')
+    address = models.CharField(max_length=150, blank=True, null=True, verbose_name='Address')
+    no = models.CharField(max_length=100, blank=True, null=True, verbose_name='Numero')
     localisation = models.ForeignKey('Localisation', on_delete=models.CASCADE, blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.CASCADE, blank=True, null=True)
     start = models.DateTimeField(blank=True, null=True, verbose_name='Start Breakdown')
@@ -86,7 +110,7 @@ class BreakdownIdrIdm(BaseModel):
     archived = models.BooleanField(default=False)
     works = models.TextField(blank=True, null=True, verbose_name='Work Request')
     prevision = models.TextField(blank=True, null=True, verbose_name='Exit Garage Prevision')
-    piece = models.TextField(blank=True, null=True, verbose_name='Etat Piece')
+    piece = models.TextField(blank=True, null=True, verbose_name='Eta Piece')
     decision = models.TextField(blank=True, null=True, verbose_name='Decision')
     diagnostics = models.TextField(blank=True, null=True, verbose_name='Diagnostics & Commentaire SAV')
     achats = models.TextField(blank=True, null=True, verbose_name='Commentaire Achats')

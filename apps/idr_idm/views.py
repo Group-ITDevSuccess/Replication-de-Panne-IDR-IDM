@@ -167,12 +167,16 @@ def get_all_machineidridm_with_breakdown_false(request):
             imports=F('breakdown__imports'),
             decision=F('breakdown__decision'),
             uid_name=F('breakdown__uid'),
+            month=F('breakdown__month'),
+            jde=F('breakdown__jde'),
+            address=F('breakdown__address'),
+            no=F('breakdown__no'),
             archived_status=F('breakdown__archived'),
             jointe_count=Count('breakdown__jointe')
         ).values(
             'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
             'appointment', 'enter', 'order', 'leave',
-            'works', 'prevision', 'piece', 'diagnostics',
+            'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no',
             'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
         )
 
@@ -200,11 +204,15 @@ def get_all_machineidridm_with_breakdown_false(request):
                 decision=F('breakdown__decision'),
                 uid_name=F('breakdown__uid'),
                 archived_status=F('breakdown__archived'),
+                month=F('breakdown__month'),
+                jde=F('breakdown__jde'),
+                address=F('breakdown__address'),
+                no=F('breakdown__no'),
                 jointe_count=Count('breakdown__jointe')
             ).values(
                 'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
                 'appointment', 'enter', 'order', 'leave',
-                'works', 'prevision', 'piece', 'diagnostics',
+                'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no',
                 'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
             )
             if breakdowns_archived:
