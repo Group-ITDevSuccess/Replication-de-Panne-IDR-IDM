@@ -57,9 +57,9 @@ class MachineIdrIdm(BaseModel):
 
 class Jointe(BaseModel):
     TYPE = (
-        ('ID Rental', 'ID Rental'),
-        ('SAV ID Motors', 'SAV ID Motors'),
-        ('Achat Import ID Rental', 'Achat Import ID Rental'),
+        ('SAV', 'SAV ID Motors'),
+        ('ACHAT', 'Achat ID Rental'),
+        ('IMPORT', 'Import ID Rental'),
     )
     name = models.CharField(max_length=255)
     fichier = models.FileField(upload_to='media/')
@@ -98,7 +98,9 @@ class BreakdownIdrIdm(BaseModel):
     month = models.CharField(choices=MONTH, null=True, blank=True, max_length=75, verbose_name='Month')
     jde = models.CharField(null=True, blank=True, max_length=50, verbose_name='JDE')
     address = models.CharField(max_length=150, blank=True, null=True, verbose_name='Address')
-    no = models.CharField(max_length=100, blank=True, null=True, verbose_name='Numero')
+    no_sav = models.CharField(max_length=100, blank=True, null=True, verbose_name='Numero')
+    no_achat = models.CharField(max_length=100, blank=True, null=True, verbose_name='Numero')
+    no_import = models.CharField(max_length=100, blank=True, null=True, verbose_name='Numero')
     localisation = models.ForeignKey('Localisation', on_delete=models.CASCADE, blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.CASCADE, blank=True, null=True)
     start = models.DateTimeField(blank=True, null=True, verbose_name='Start Breakdown')
@@ -116,7 +118,7 @@ class BreakdownIdrIdm(BaseModel):
     diagnostics = models.TextField(blank=True, null=True, verbose_name='Diagnostics & Commentaire SAV')
     achats = models.TextField(blank=True, null=True, verbose_name='Commentaire Achats')
     imports = models.TextField(blank=True, null=True, verbose_name='Commentaire Import')
-    jointe = models.ManyToManyField('Jointe', blank=True, verbose_name='Piece Jointe')
+    jointe = models.ManyToManyField('Jointe', blank=True, verbose_name='Piece Jointe SAV')
     historic = models.ManyToManyField('Historic', blank=True, verbose_name='Historique Breakdown')
 
     def __str__(self):

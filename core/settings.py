@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'guard.apps.GuardConfig',
     'apps.idr_idm.apps.IdrIdmConfig',
-    'apps.detail.apps.DetailConfig',
     'django_browser_reload',
 
 ]

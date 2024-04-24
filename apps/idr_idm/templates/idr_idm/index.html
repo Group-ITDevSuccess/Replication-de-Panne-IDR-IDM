@@ -27,7 +27,8 @@
                 <button class="btn btn-secondary mr-2" id="print-table"><i class="fas fa-print"></i></button>
                 <button type='button' class='btn btn-success btn-sm mr-2' id="openModalBtn"><i
                         class='fas fa-map-location'></i></button>
-                <form class="form-inline " method="post" action="{% url 'idr_idm:add_client' %}">
+                {% if not uid_client %}
+                      <form class="form-inline " method="post" action="{% url 'idr_idm:add_client' %}">
                     {% csrf_token %}
                     <div class="form-group mr-2">
                         {{ form_add_client.name }}
@@ -42,6 +43,8 @@
                             class="fas fa-plus-circle"></i>
                     </button>
                 </form>
+                {% endif %}
+
                 <button class="btn btn-info mr-2" id="history-undo"><i class="fas fa-undo-alt"></i></button>
                 <button class="btn btn-info mr-2" id="history-redo"><i class="fas fa-redo-alt"></i></button>
                 <form class="form-inline" method="post" action="{% url 'idr_idm:create_machine' %}">
@@ -91,221 +94,226 @@
 
         }
         function uploadPiecePopup(cell, onRendered, success, cancel) {
-        {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
-        const uid = cell.getData().uid_name;
-        if (uid) {
-            const modalId = `uploadCellModal-${uid}`;
-            const uploadPiece = `upload-${uid}`
-            const tablePiece = `piece-load-${uid}`
-            const modalHtml = `
-            <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="${modalId}Label">Piece Jointe du ${cell.getData().matriculate}</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row">
-                                <div class="col-6">
-                                    <input id="${uploadPiece}" type="file" name="files" accept=".jpg, .png, .pdf, .txt, .doc, .docx, .xls, .xlsx, .ppt, .pptx, image/jpeg, image/png,text/plain, application/pdf, application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint" multiple>
-                                </div>
-                                <div class="col-6">
-                                    <div id="${tablePiece}"></div>
-                                </div>
+            {#https://www.jqueryscript.net/form/advanced-drag-drop-uploader.html#}
+            const uid = cell.getData().uid_name;
+            const column = cell.getColumn().getDefinition().title
+            if (uid) {
+                const modalId = `uploadCellModal-${uid}`;
+                const uploadPiece = `upload-${uid}`
+                const tablePiece = `piece-load-${uid}`
+                const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">Piece Jointe du ${cell.getData().matriculate}</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
                             </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input id="${uploadPiece}" type="file" name="files" accept=".jpg, .png, .pdf, .txt, .doc, .docx, .xls, .xlsx, .ppt, .pptx, image/jpeg, image/png,text/plain, application/pdf, application/msword, application/vnd.ms-excel, application/vnd.ms-powerpoint" multiple>
+                                    </div>
+                                    <div class="col-6">
+                                        <div id="${tablePiece}"></div>
+                                    </div>
+                                </div>
 
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
 
 
-            $('body').append(modalHtml);
+                $('body').append(modalHtml);
 
-            const modalElement = document.getElementById(modalId);
-            $(modalElement).modal('show');
+                const modalElement = document.getElementById(modalId);
+                $(modalElement).modal('show');
 
-            {#https://www.jqueryscript.net/form/Fancy-File-Uploader-jQuery.html#}
-            $(`#${uploadPiece}`).FancyFileUpload({
-                url: '{% url 'idr_idm:upload_file' %}',
-                params: {
-                     id: `${uid}`
-                },
-                maxfilesize : 100000000,
-                edit: true,
-                success: true,
-                error: "Erreur lors de Upload de ce Fichier",
-                accept: [
-                    '.jpg', '.png', 'image/jpeg', 'image/png', // Images
-                    '.pdf', 'application/pdf', // PDF
-                    '.txt', 'text/plain', // Fichiers texte
-                    '.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // Documents Word
-                    '.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // Feuilles de calcul Excel
-                    '.ppt', '.pptx', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // Présentations PowerPoint
-                ],
-                displayunits :'iec_windows',
-
-                retries: 5,
-                retrydelay: 500,
-                uploadcompleted: function(e, data) {
-
-                },
-
-            })
-
-             let pieces = new Tabulator(`#${tablePiece}`, {
-                ajaxURL: "{% url 'idr_idm:get_file_jointe' %}", //ajax URL
-                ajaxContentType: "json",
-                columnDefaults: {
-                    tooltip: true,
-                    headerHozAlign: "center",
-                    editor: false,
-                    resizable: "header",
-                },
-                persistence: {
-                    sort: true,
-                    filter: false,
-                    {#columns: true,#}
-                },
-                headerSort: true,
-                history: true,
-                headerSortClickElement: 'icon',
-                selectableRangeClearCells: true,
-                columnHeaderVertAlign: "bottom",
-                ajaxConfig: "POST",
-                ajaxParams: {uid: uid},
-                success: function (data) {
-                    if (data.status !== 200 && data.status !== 201) {
-                        // Display error message in alert and prevent tickCross change
-                        alert(data.error || "An error occurred while fetching data.");
-                        return; // Exit the function if there's an error
-                    }
-                    const piece = data.data;
-                    console.log(data)
-                    table.setData(piece);
-                },
-                progressiveLoad: "load",
-                progressiveLoadDelay: 200,
-                layout: "fitDataStretch",
-                height: "200px",
-                placeholder: "Aucun Pièce Jointe",
-                placeholderHeaderFilter: 'Aucun Pièce Jointe Correspondent',
-                rowHeight: 40,
-                resizableRows: true,
-                resizableRowGuide: true,
-                rowHeader: {
-                    formatter: "rownum",
-                    headerSort: false,
-                    hozAlign: "center",
-                    resizable: false,
-                    frozen: true
-                },
-                columns: [
-                    {title: "Nom du Fichier", field: "name", headerSort: true, width: 100,},
-                    {title: "Acteur", field: "acteur", headerSort: true, width: 100,},
-                    {
-                        title: "Date",
-                        field: "created_at",
-                        hozAlign: "center",
-                        sorter: "date",
-                        headerSort: true,
-                        width: 125
+                {#https://www.jqueryscript.net/form/Fancy-File-Uploader-jQuery.html#}
+                $(`#${uploadPiece}`).FancyFileUpload({
+                    url: '{% url 'idr_idm:upload_file' %}',
+                    params: {
+                         id: `${uid}`,
+                         column: column
                     },
-                    {title: "Télécharger",
-                        frozen: true,
-                        resizable: false,
-                        hozAlign: "center",
-                        download: false,
-                        formatter: function (cell, formatterParams) {
-                            return "<i class='fa fa-file-download'></i>";
-                        },
-                        headerSort: false, width: 40, cellClick: function(e, cell) {
-                        $.ajax({
-                            type: "POST",
-                            url: "{% url 'idr_idm:download_file'  %}",
-                            data: {
-                                'filename': cell.getData().fichier,
-                                'name': cell.getData().name,
-                            },
-                            success: function(data, textStatus, jqXHR) {
-                                // Gérer la réponse du serveur, par exemple, ouvrir une boîte de dialogue de téléchargement
-                                console.log("Fichier téléchargé avec succès !");
-                            },
-                            error: function(jqXHR, textStatus, errorThrown) {
-                                // Gérer les erreurs de requête
-                                console.error("Erreur lors du téléchargement du fichier :", errorThrown);
-                            }
-                        });
+                    maxfilesize : 100000000,
+                    edit: true,
+                    success: true,
+                    error: "Erreur lors de Upload de ce Fichier",
+                    accept: [
+                        '.jpg', '.png', 'image/jpeg', 'image/png', // Images
+                        '.pdf', 'application/pdf', // PDF
+                        '.txt', 'text/plain', // Fichiers texte
+                        '.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // Documents Word
+                        '.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // Feuilles de calcul Excel
+                        '.ppt', '.pptx', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // Présentations PowerPoint
+                    ],
+                    displayunits :'iec_windows',
 
+                    retries: 5,
+                    retrydelay: 500,
+                    uploadcompleted: function(e, data) {
+
+                    },
+
+                })
+
+                 let pieces = new Tabulator(`#${tablePiece}`, {
+                    ajaxURL: "{% url 'idr_idm:get_file_jointe' %}", //ajax URL
+                    ajaxContentType: "json",
+                    columnDefaults: {
+                        tooltip: true,
+                        headerHozAlign: "center",
+                        editor: false,
+                        resizable: "header",
+                    },
+                    persistence: {
+                        sort: true,
+                        filter: false,
+                        {#columns: true,#}
+                    },
+                    headerSort: true,
+                    history: true,
+                    headerSortClickElement: 'icon',
+                    selectableRangeClearCells: true,
+                    columnHeaderVertAlign: "bottom",
+                    ajaxConfig: "POST",
+                    ajaxParams: {
+                        uid: uid,
+                        column: cell.getColumn().getDefinition().title
+                        },
+                    success: function (data) {
+                        if (data.status !== 200 && data.status !== 201) {
+                            // Display error message in alert and prevent tickCross change
+                            alert(data.error || "An error occurred while fetching data.");
+                            return; // Exit the function if there's an error
                         }
+                        const piece = data.data;
+                        console.log(data)
+                        table.setData(piece);
                     },
-
-                    {
-                        title: 'Action',
-                        formatter: function (cell, formatterParams) { //plain text value
-                            return "<i class='fa fa-trash-arrow-up'></i>";
-                        },
+                    progressiveLoad: "load",
+                    progressiveLoadDelay: 200,
+                    layout: "fitDataStretch",
+                    height: "200px",
+                    placeholder: "Aucun Pièce Jointe",
+                    placeholderHeaderFilter: 'Aucun Pièce Jointe Correspondent',
+                    rowHeight: 40,
+                    resizableRows: true,
+                    resizableRowGuide: true,
+                    rowHeader: {
+                        formatter: "rownum",
                         headerSort: false,
-                        frozen: true,
-                        resizable: false,
                         hozAlign: "center",
-                        download: false,
-                        cellClick: function (e, cell) {
+                        resizable: false,
+                        frozen: true
+                    },
+                    columns: [
+                        {title: "Nom du Fichier", field: "name", headerSort: true, width: 100,},
+                        {title: "Acteur", field: "acteur", headerSort: true, width: 100,},
+                        {
+                            title: "Date",
+                            field: "created_at",
+                            hozAlign: "center",
+                            sorter: "date",
+                            headerSort: true,
+                            width: 125
+                        },
+                        {title: "Télécharger",
+                            frozen: true,
+                            resizable: false,
+                            hozAlign: "center",
+                            download: false,
+                            formatter: function (cell, formatterParams) {
+                                return "<i class='fa fa-file-download'></i>";
+                            },
+                            headerSort: false, width: 40, cellClick: function(e, cell) {
+                            $.ajax({
+                                type: "POST",
+                                url: "{% url 'idr_idm:download_file'  %}",
+                                data: {
+                                    'filename': cell.getData().fichier,
+                                    'name': cell.getData().name,
+                                },
+                                success: function(data, textStatus, jqXHR) {
+                                    // Gérer la réponse du serveur, par exemple, ouvrir une boîte de dialogue de téléchargement
+                                    console.log("Fichier téléchargé avec succès !");
+                                },
+                                error: function(jqXHR, textStatus, errorThrown) {
+                                    // Gérer les erreurs de requête
+                                    console.error("Erreur lors du téléchargement du fichier :", errorThrown);
+                                }
+                            });
 
-                            let fileId = cell.getData().uid;
-                            let user = ('{{ user.username }}' === cell.getData().acteur);
-                            if (fileId && user) {
-                                if (confirm("Est-vous sûr de vouloir supprimer ce piece jointe ceci ?")) {
+                            }
+                        },
 
-                                    fetch("{% url 'idr_idm:delete_jointe' %}", {
-                                        method: "POST",
-                                        headers: {
-                                            "Content-Type": "application/x-www-form-urlencoded",
-                                            "X-CSRFToken": "{{ csrf_token }}"
-                                        },
-                                        body: new URLSearchParams({
-                                            'uid_breakdown': uid,
-                                            'uid_jointe': fileId,
+                        {
+                            title: 'Action',
+                            formatter: function (cell, formatterParams) { //plain text value
+                                return "<i class='fa fa-trash-arrow-up'></i>";
+                            },
+                            headerSort: false,
+                            frozen: true,
+                            resizable: false,
+                            hozAlign: "center",
+                            download: false,
+                            cellClick: function (e, cell) {
+
+                                let fileId = cell.getData().uid;
+                                let user = ('{{ user.username }}' === cell.getData().acteur);
+                                if (fileId && user) {
+                                    if (confirm("Est-vous sûr de vouloir supprimer ce piece jointe ceci ?")) {
+
+                                        fetch("{% url 'idr_idm:delete_jointe' %}", {
+                                            method: "POST",
+                                            headers: {
+                                                "Content-Type": "application/x-www-form-urlencoded",
+                                                "X-CSRFToken": "{{ csrf_token }}"
+                                            },
+                                            body: new URLSearchParams({
+                                                'uid_breakdown': uid,
+                                                'uid_jointe': fileId,
+                                            })
                                         })
-                                    })
-                                        .then(response => response.json())
-                                        .then(data => {
-                                            if (data.success) {
-                                                pieces.deleteRow(cell.getRow());
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                if (data.success) {
+                                                    pieces.deleteRow(cell.getRow());
 
-                                            } else {
-                                                console.error("Error deleting Breakdown:", data.error);
-                                            }
-                                        })
-                                        .catch(error => {
-                                            console.error("Error deleting Breakdown:", error);
-                                        });
+                                                } else {
+                                                    console.error("Error deleting Breakdown:", data.error);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                console.error("Error deleting Breakdown:", error);
+                                            });
+                                    }
+
+                                } else {
+                                    alert("Vous n'ête pas celui qui a uploader ce fichier")
                                 }
 
-                            } else {
-                                alert("Vous n'ête pas celui qui a uploader ce fichier")
                             }
-
                         }
-                    }
-                ]
-            });
+                    ]
+                });
 
 
-            $(modalElement).on('hide.bs.modal', () => {
-                $(`#${modalId}`).remove();
-                {#reloadPage();#}
+                $(modalElement).on('hide.bs.modal', () => {
+                    $(`#${modalId}`).remove();
+                    {#reloadPage();#}
 
-            });
-            return true;
+                });
+                return true;
+            }
+            alert("Le panne doit etre enreigstrer d'abord !")
+            return false;
         }
-        alert("Le panne doit etre enreigstrer d'abord !")
-        return false;
-    }
         let tickCrossEditor = function (cell, onRendered, success, cancel) {
             // Create the checkbox element
             let checkbox = document.createElement("input");
@@ -342,6 +350,9 @@
         let table = new Tabulator("#pannes", {
             ajaxURL: "{% url 'idr_idm:get_breakdown' %}",
             ajaxContentType: "json",
+            {% if uid_client %}
+            ajaxParams: {'uid': '{{ uid_client }}'},
+            {% endif %}
             rowHeight: 40,
             resizableRows: true,
             resizableRowGuide: true,
@@ -384,7 +395,7 @@
                 }
             },
             rowHeader: {
-                title: `<button type='button' class='btn btn-primary btn-sm' id='add-row' {% if not user.level_1 %}
+                title: `<button type='button' class='btn btn-primary btn-sm' id='add-row' {% if not user.level_1 or uid_client %}
                 disabled{% endif %} onclick="addRow()"><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
                 resizable: false,
@@ -449,13 +460,15 @@
                                 let conf = confirm("Est-vous sûr de vouloir enregistrer ce ligne ?")
                                 if (conf) {
                                     const rowData = cell.getRow().getData();
+                                    let  data = JSON.stringify(rowData)
+
                                     if (rowData.uid_name) {
                                         fetch("{% url 'idr_idm:update_line' %}", {
                                             method: "POST",
                                             headers: {
                                                 "Content-Type": "application/json"
                                             },
-                                            body: JSON.stringify(rowData)
+                                            body: data
                                         })
                                             .then(response => {
                                                 if (!response.ok) {
@@ -476,12 +489,13 @@
                                                 cancel()
                                             });
                                     } else {
+                                        {#data['client_name'] = '{{ name_client }}';#}
                                         fetch("{% url 'idr_idm:post_line' %}", {
                                             method: "POST",
                                             headers: {
                                                 "Content-Type": "application/json"
                                             },
-                                            body: JSON.stringify(rowData)
+                                            body: data
                                         })
                                             .then(response => {
                                                 if (response.status === 409) {
@@ -547,7 +561,7 @@
                     frozen: true,
                 },
                 {
-                    title: "ID Rental",
+                    title: "ID RENTAL",
                     columns: [
                         {
                             title: "Immat ou N° série",
@@ -578,27 +592,33 @@
 
                             width: 150,
                         },
+                        {% if not uid_client %}
+
                         {
                             title: "CLIENT",
                             field: "client_name",
                             width: 125,
-                            editorParams: {
-                                placeholderEmpty: "Aucun Client",
-                                autocomplete: "true", allowEmpty: true, listOnEmpty: true,
-                                valuesURL: "{% url 'idr_idm:get_all_client' %}",
-                                placeholderLoading: "Chargement...",
-                                formatter: function (value, data, cell) {
-                                    if (value && value.label) {
-                                        return value.label;
-                                    } else {
-                                        return "";
-                                    }
-                                }
-                            },
-                            {% if user.level_1 %}
-                                editor: "list",
-                            {% endif %}
+                                editorParams: {
+                                        placeholderEmpty: "Aucun Client",
+                                        autocomplete: "true", allowEmpty: true, listOnEmpty: true,
+                                        valuesURL: "{% url 'idr_idm:get_all_client' %}",
+                                        placeholderLoading: "Chargement...",
+                                        formatter: function (value, data, cell) {
+                                            if (value && value.label) {
+                                                return value.label;
+                                            } else {
+                                                return "";
+                                            }
+                                        }
+
+                                },
+                                {% if user.level_1 %}
+                                    editor: "list",
+                                {% endif %}
+
                         },
+                            {% endif %}
+
                         {
                             title: "Localisation",
                             field: "localisation_name",
@@ -744,7 +764,7 @@
                     formatter: calculImmo,
                 },
                 {
-                    title: "SAV ID Motors",
+                    title: "SAV ID MOTORS",
                     columns: [
                         {
                             title: "N° OR (ordre de réparation)",
@@ -820,6 +840,22 @@
                                 maskAutoFill: true,
                             },
                         },
+                        {title: 'N.DA', field: 'no_sav', type:'input', {% if user.level_2 %}editor: true{% endif %}},
+                        {
+                        title: "JOINTE SAV",
+                        width: 100,
+                        formatter: function (cell, formatterParams) {
+                            if (cell.getValue() > 0) {
+                                return '<i class="fas fa-info-circle text-warning"></i>'
+                            }
+                            return ''
+                        },
+                        hozAlign: "center",
+                        {% if user.level_2 %}
+                            editor: uploadPiecePopup,
+                        {% endif %}
+
+                    },
                         {
                             title: "Date prévisionnelle de sortie garage",
                             field: "prevision",
@@ -853,10 +889,10 @@
                     ]
                 },
                 {
-                    title: "Achat et Import ID Motors",
+                    title: "ACHAT LOCAL ID MOTORS",
                     columns: [
                         {
-                            title: 'COMMENTAIRES ACHATS',
+                            title: 'COMMENTAIRES ACHAT LOCAL',
                             field: 'achats',
                             {% if user.level_3 %}
                                 editor: textareaPopup,
@@ -885,10 +921,31 @@
                                 maskAutoFill: true,
                             },
                         },
+                        {title: 'N.BC', field: 'no_achat', type:'input', {% if user.level_3 %}editor: true{% endif %}},
+                        {
+                        title: "JOINTE ACHAT",
+                        width: 100,
+                        formatter: function (cell, formatterParams) {
+                            if (cell.getValue() > 0) {
+                                return '<i class="fas fa-info-circle text-warning"></i>'
+                            }
+                            return ''
+                        },
+                        hozAlign: "center",
+                        {% if user.level_4 %}
+                            editor: uploadPiecePopup,
+                        {% endif %}
+
+                    },
+                    ]
+                },
+                {
+                    title: "IMPORT ID MOTORS",
+                    columns: [
                         {
                             title: 'COMMENTAIRES IMPORT',
                             field: 'imports',
-                            {% if user.level_3 %}
+                            {% if user.level_4 %}
                                 editor: textareaPopup,
                             {% endif %}
                             accessorDownload: textareaAccessor,
@@ -915,6 +972,22 @@
                                 maskAutoFill: true,
                             },
                         },
+                        {title: 'N.BC', field: 'no_import', type:'input', {% if user.level_4 %}editor: true{% endif %}},
+                        {
+                        title: "JOINTE IMPORT",
+                        width: 100,
+                        formatter: function (cell, formatterParams) {
+                            if (cell.getValue() > 0) {
+                                return '<i class="fas fa-info-circle text-warning"></i>'
+                            }
+                            return ''
+                        },
+                        hozAlign: "center",
+                        {% if user.level_4 %}
+                            editor: uploadPiecePopup,
+                        {% endif %}
+
+                    },
                     ]
                 },
                 {
@@ -941,12 +1014,12 @@
                 {
                     title: "DECISION",
                     field: "decision",
-                    {% if user.level_4 %}
+                    {% if user.level_5 %}
                         editor: textareaPopup,
                     {% endif %}
                     accessorDownload: textareaAccessor,
 
-                    width: 200,
+                    width: 150,
                     formatter: function (cell, formatterParams) {
                         // Get the value from the cell
                         const value = cell.getValue();
@@ -962,22 +1035,7 @@
                         return tempElement.textContent;
                     },
                 },
-                {
-                    title: "Piece Jointe",
-                    field: 'jointe_count',
-                    width: 100,
-                    formatter: function (cell, formatterParams) {
-                        if (cell.getValue() > 0) {
-                            return '<i class="fas fa-info-circle text-warning"></i>'
-                        }
-                        return ''
-                    },
-                    hozAlign: "center",
-                    {% if user.level_4 %}
-                        editor: uploadPiecePopup,
-                    {% endif %}
 
-                },
                 {
                     formatter: function (cell, formatterParams) { //plain text value
                         return "<i class='fa fa-box-archive'></i>";

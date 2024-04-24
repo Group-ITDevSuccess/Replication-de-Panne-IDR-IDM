@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction, IntegrityError
 from django.db.models.functions import Cast
 from django.http import JsonResponse, HttpResponse, FileResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import F, Q, Subquery, Count, FloatField
@@ -63,10 +63,26 @@ def format_datetime(value):
 
 @login_required
 def index(request):
+
     context = {
         'path': request.path,
         'form_add_machine': MachineForm(),
-        'form_add_client': ClientForm()
+        'form_add_client': ClientForm(),
+    }
+    return render(request, 'idr_idm/index.html', context)
+
+
+@login_required
+def detail(request, uid):
+    client = get_object_or_404(Client, uid=uid, used__exact=True)
+    uid = client.uid
+    name = client.name
+    context = {
+        'path': request.path,
+        'form_add_machine': MachineForm(),
+        'form_add_client': ClientForm(),
+        'uid_client': uid,
+        'name_client': name
     }
     return render(request, 'idr_idm/index.html', context)
 
@@ -77,12 +93,15 @@ def upload_file(request):
     if request.method == 'POST' and request.FILES:
         try:
             uploaded_files = request.FILES.getlist('files', None)
+            column = request.POST.get('column', None)
+
             id_param = request.POST.get('id', None)
             print(f"POST: {request.POST}, FILE: {request.FILES}, {uploaded_files}, {id_param}")
 
-            if uploaded_files is not None and id_param is not None:
+            if uploaded_files is not None and id_param is not None and column is not None:
                 try:
                     breakdown = BreakdownIdrIdm.objects.get(uid__exact=id_param)
+                    column = str(column).replace('JOINTE ', '').upper()
                     for uploaded_file in uploaded_files:
                         # Générer un UID unique pour le nom du fichier
                         uid = str(uuid.uuid4())
@@ -97,7 +116,7 @@ def upload_file(request):
 
                         # Créer l'objet Jointe et l'associer à Breakdown
                         fichier = Jointe.objects.create(name=uploaded_file.name, fichier=new_filename,
-                                                        acteur=request.user.username)
+                                                        acteur=request.user.username, type=column)
                         breakdown.jointe.add(fichier)
 
                     breakdown.save()
@@ -139,11 +158,14 @@ def get_file_jointe(request):
     gets = json.loads(request.body.decode('utf-8'))
     uid = gets.get('uid', None)
     page = gets.get('page', 0)
+    column = gets.get('column', 0)
+    column = str(column).replace('JOINTE ', '')
     datas = []
     if uid:
         try:
             breakdown = BreakdownIdrIdm.objects.get(uid__exact=uid)
-            jointe = breakdown.jointe.all().values('uid', 'name', 'fichier', 'acteur', 'created_at')
+            jointe = breakdown.jointe.filter(type__iexact=column).values('uid', 'name', 'fichier', 'acteur', 'created_at')
+
             datas = [{key: format_value(value) for key, value in data.items()} for data in jointe]
         except BreakdownIdrIdm.DoesNotExist:
             print("Breakdown Introuvable !")
@@ -204,13 +226,15 @@ def get_all_machineidridm_with_breakdown_false(request):
         month=F('breakdown__month'),
         jde=F('breakdown__jde'),
         address=F('breakdown__address'),
-        no=F('breakdown__no'),
+        no_achat=F('breakdown__no_achat'),
+        no_sav=F('breakdown__no_sav'),
+        no_import=F('breakdown__no_import'),
         archived_status=F('breakdown__archived'),
         jointe_count=Count('breakdown__jointe')
     ).values(
         'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
         'appointment', 'enter', 'order', 'leave',
-        'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no',
+        'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no_achat', 'no_import','no_sav',
         'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
     )
 
@@ -241,12 +265,14 @@ def get_all_machineidridm_with_breakdown_false(request):
             month=F('breakdown__month'),
             jde=F('breakdown__jde'),
             address=F('breakdown__address'),
-            no=F('breakdown__no'),
+            no_achat=F('breakdown__no_achat'),
+            no_sav=F('breakdown__no_sav'),
+            no_import=F('breakdown__no_import'),
             jointe_count=Count('breakdown__jointe')
         ).values(
             'uid_name', 'matriculate', 'model', 'localisation_name', 'client_name', 'start',
             'appointment', 'enter', 'order', 'leave',
-            'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no',
+            'works', 'prevision', 'piece', 'diagnostics', 'month', 'jde', 'address', 'no_achat', 'no_import','no_sav',
             'achats', 'imports', 'decision', 'archived_status', 'jointe_count', 'km_enter', 'km_exit'
         )
         if breakdowns_archived:

@@ -17,7 +17,7 @@
             </li>
             {% for nav in navs %}
                 <li class="nav-item {% if uid_client == nav.uid %}active{% endif %}">
-                    <a class="nav-link" href="{% url 'detail:index' nav.uid %}"><i class="fas fa-star text-warning"></i>
+                    <a class="nav-link" href="{% url 'idr_idm:details' nav.uid %}"><i class="fas fa-star text-warning"></i>
                         IDR-{{ nav.name|upper }}</a>
                 </li>
             {% endfor %}

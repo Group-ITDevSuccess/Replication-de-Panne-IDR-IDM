@@ -138,7 +138,7 @@ def create_user_json(request):
                 setattr(user, key, value)
             user.save()
             data = list(CustomUser.objects.filter(uid__exact=user.uid).annotate(id=F('uid')).values(
-                'id', 'username', 'first_name', 'last_name', 'level_1', 'level_2', 'level_3', 'level_4',
+                'id', 'username', 'first_name', 'last_name', 'level_1', 'level_2', 'level_3', 'level_4', 'level_5',
                 'autoriser',
                 'is_active',
                 'is_staff', 'is_superuser',

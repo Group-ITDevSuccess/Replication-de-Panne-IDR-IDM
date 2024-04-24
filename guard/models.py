@@ -22,9 +22,13 @@ class CustomUser(AbstractUser):
     )
     level_3 = models.BooleanField(
         default=False,
-        help_text=gettext_lazy("Action Import Export ID Motors")
+        help_text=gettext_lazy("Action Import ID Motors")
     )
     level_4 = models.BooleanField(
+        default=False,
+        help_text=gettext_lazy("Action Export ID Motors")
+    )
+    level_5 = models.BooleanField(
         default=False,
         help_text=gettext_lazy("Action Direction")
     )
