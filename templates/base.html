@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="{% static 'dist/css/codemirror.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/monokai.css' %}">
     <link rel="stylesheet" href="{% static 'dist/css/tableexport.min.css' %}">
-    <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_midnight.min.css' %}">
+    <link rel="stylesheet" href="{% static 'tabulator/dist/css/tabulator_site_dark.min.css' %}">
 
     <link rel="stylesheet" href="{% static 'summernote/summernote-bs4.min.css' %}">
     <link rel="stylesheet" href="{% static 'fancy-file-uploader/fancy_fileupload.css' %}" type="text/css" media="all">
@@ -34,39 +34,6 @@
         }
 
 
-        .tabulator .tabulator-header {
-            position: relative;
-            box-sizing: border-box;
-            width: 100%;
-            border-bottom: 1px solid #3FB449;
-            background-color: #222;
-            color: #fff;
-            font-weight: bold;
-            white-space: nowrap;
-            overflow: hidden;
-            -moz-user-select: none;
-            -khtml-user-select: none;
-            -webkit-user-select: none;
-            -o-user-select: none;
-            outline: none;
-        }
-
-        .tabulator .tabulator-footer .tabulator-calcs-holder .tabulator-row {
-            border: 1px solid #3FB449;
-            color: #fff !important;
-        }
-
-        .pannes .tabulator-row .tabulator-cell .tabulator-data-tree-control {
-            height: 14px;
-            width: 14px;
-            border: 2px solid #3FB449 !important;
-        }
-
-        .pannes .tabulator-row .tabulator-cell .tabulator-data-tree-control {
-            height: 14px;
-            width: 14px;
-            border: 2px solid #3FB449 !important;
-        }
 
 
         /* Variables */
@@ -343,9 +310,6 @@
 
         return textArea;
     }
-
-
-
 
     let datetimeEditor = function (cell, onRendered, success, cancel, editorParams) {
 

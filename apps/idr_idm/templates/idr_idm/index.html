@@ -36,9 +36,6 @@
                         {{ form_add_client.phone }}
                     </div>
                     <div class="form-group mr-2">
-                        {{ form_add_client.email }}
-                    </div>
-                    <div class="form-group mr-2">
                         {{ form_add_client.localisation }}
                     </div>
                     <button class="btn btn-success mr-2" id="filter-submit" type="submit"><i
@@ -359,12 +356,11 @@
                 }
             },
             rowHeader: {
-                title: `<button type='button' class='btn btn-primary btn-sm mr-2' id='add-row' {% if not user.level_1 %}
+                title: `<button type='button' class='btn btn-primary btn-sm' id='add-row' {% if not user.level_1 %}
                 disabled{% endif %} onclick="addRow()"><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
                 resizable: false,
-                minWidth: 30,
-                width: 35,
+                width: 45,
                 frozen: true,
                 rowHandle: true,
                 editor: false,

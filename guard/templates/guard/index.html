@@ -76,8 +76,12 @@
                 Page Administration
             </div>
             <div class="card-body">
-
-                <div id="container"></div>
+                <div class="row">
+                    <div class="col-lg-9 col-md-12">
+                        <div id="container"></div>
+                    </div>
+                    <div class="col-lg-3 col-md-12"></div>
+                </div>
             </div>
         </div>
     </main>
@@ -88,6 +92,13 @@
             {#let edited = cell.isEdited();#}
             const rowData = cell.getRow().getData();
             {#console.log("On a : " + edited + " d'ou : "+JSON.stringify(rowData))#}
+            let field = cell.getColumn().getField();
+            let value = cell.getValue();
+            let body = {
+                'id': rowData.id
+            }
+            body[field] = value
+            {#console.log(field, value, body)#}
 
             if (rowData.id) {
                 fetch("{% url 'guard:update_user_json' %}", {
@@ -95,7 +106,7 @@
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify(rowData)
+                    body: JSON.stringify(body)
                 })
                     .then(response => {
                         if (!response.ok) {
@@ -122,11 +133,9 @@
         }
 
         let deleteUserRow = function (e, cell) {
-
             let userId = cell.getData().id;
             if (userId) {
                 if (confirm("Est-vous sûr de vouloir supprimer ceci ?")) {
-
                     fetch("{% url 'guard:delete_user_json' %}", {
                         method: "POST",
                         headers: {
@@ -164,6 +173,7 @@
             headerSortClickElement: 'icon',
             selectableRangeClearCells: true,
             columnHeaderVertAlign: "bottom",
+            footerElement: `<button type='button' class='btn btn-warning btn-sm mr-2' id='reload-table' onClick="reloadPage()"><i class='fas fa-sync-alt'></i></button>`,
             height: "40vw",
             success: function (data) {
                 if (data.status !== 200 && data.status !== 201) {
@@ -203,11 +213,11 @@
                 {% if not user.is_superuser %}disabled{% endif %}><i class='fas fa-plus'></i></button>`,
                 headerSort: false,
                 resizable: false,
-                minWidth: 30,
-                width: 35,
                 frozen: true,
                 rowHandle: true,
                 editor: false,
+                width: 45,
+
                 formatter: "handle",
             },
             groupBy: function (rowData) {
@@ -223,7 +233,7 @@
             },
             groupHeader: function (value, count, data, group) {
 
-                return value + "<span style='color:#d00; margin-left:10px;'>(" + count + " personne)</span>";
+                return value + "<span style='color:#d00; margin-left:10px;'>(" + count + " personnes)</span>";
             },
             columns: [
                 {
@@ -242,24 +252,19 @@
                 {
                     title: "Identifiant",
                     field: "username",
-                    width: 150,
+                    width: 100,
                 },
                 {
                     title: "Nom",
                     field: "first_name",
                     editor: false,
-                    width: 150,
+                    width: 125,
                 },
                 {
                     title: "Prénom",
                     field: "last_name",
                     editor: false,
-                    width: 150,
-                }, {
-                    title: "Email",
-                    field: "email",
-                    editor: false,
-                    width: 250,
+                    width: 175,
                 },
                 {
                     title: "<code>*</code> Autoriser",
@@ -270,7 +275,6 @@
                     editor: true,
                     headerSort: false,
                     cellEdited: editTickCross
-
                 },
                 {
                     title: "<code>*</code> ID Motors",
@@ -281,7 +285,6 @@
                     editor: true,
                     headerSort: false,
                     cellEdited: editTickCross
-
                 },
                 {
                     title: "<code>*</code> SAV ID Rental",
@@ -316,56 +319,43 @@
                     cellEdited: editTickCross
 
                 },
-                {
-                    title: "Staff",
-                    resizable: false,
-                    field: 'is_staff',
-                    hozAlign: "center",
-                    formatter: "tickCross",
-                    headerSort: false,
-                    {% if user.is_superuser %}
+                {% if user.is_superuser %}
+                    {
+                        title: "Staff",
+                        resizable: false,
+                        field: 'is_staff',
+                        hozAlign: "center",
+                        formatter: "tickCross",
+                        headerSort: false,
                         editor: true,
                         cellEdited: editTickCross
-                    {% endif %}
 
 
-                },
-                {
-                    title: "Super Utilisateur",
-                    resizable: false,
-                    field: 'is_superuser',
-                    hozAlign: "center",
-                    formatter: "tickCross",
-                    headerSort: false,
-                    {% if user.is_superuser %}
-                        editor: true,
-                        cellEdited: editTickCross
-                    {% endif %}
-                },
-                {
-                    title: "Dernier Connexion",
-                    resizable: true,
-                    field: 'date_joined',
-                    hozAlign: "center",
-                    headerSort: true,
-                    editor: false,
-                    sorter: "datetime",
-                },
-                {
-                    formatter: function (cell, formatterParams) { //plain text value
-                        return "<i class='fa fa-trash'></i>";
                     },
-                    headerSort: false,
-                    frozen: true,
-                    resizable: false,
-                    width: 50,
-                    hozAlign: "center",
-                    {% if user.is_superuser %}
-                        cellClick: deleteUserRow
-                    {% endif %}
-                }
-
-
+                    {
+                        title: "Super Utilisateur",
+                        resizable: false,
+                        field: 'is_superuser',
+                        hozAlign: "center",
+                        formatter: "tickCross",
+                        headerSort: false,
+                        editor: true,
+                        cellEdited: editTickCross
+                    },
+                    {
+                        formatter: function (cell, formatterParams) { //plain text value
+                            return "<i class='fa fa-trash'></i>";
+                        },
+                        headerSort: false,
+                        frozen: true,
+                        resizable: false,
+                        width: 40,
+                        hozAlign: "center",
+                        {% if user.is_superuser %}
+                            cellClick: deleteUserRow
+                        {% endif %}
+                    }
+                {% endif %}
             ]
         })
 
