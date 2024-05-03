@@ -24,6 +24,7 @@ urlpatterns = [
 
     path('admin/', admin.site.urls),
     path('accounts/', include('guard.urls')),
+    path("custome-accounts/", include("allauth.urls")),  # new
     path('i18n/', include('django.conf.urls.i18n')),
     path('', include('apps.idr_idm.urls')),
     re_path(r"^static/(?P<path>.*)$", serve, {'document_root': settings.STATIC_ROOT}),

@@ -40,6 +40,12 @@ INSTALLED_APPS = [
     'admin_interface',
     'colorfield',
     "debug_toolbar",
+    # "allauth",  # new
+    # "allauth.account",  # new
+    # "allauth.socialaccount",  # new
+    # social providers
+    # "allauth.socialaccount.providers.github",  # new
+    # "allauth.socialaccount.providers.twitter",  # new
     'django.contrib.humanize',
     'django.contrib.admin',
     'django.contrib.admindocs',
@@ -55,10 +61,13 @@ INSTALLED_APPS = [
 
 ]
 
+
 INTERNAL_IPS = [
     "127.0.0.1",
     "localhost"
 ]
+
+
 
 X_FRAME_OPTIONS = "SAMEORIGIN"
 SILENCED_SYSTEM_CHECKS = ["security.W019"]
@@ -66,6 +75,7 @@ SILENCED_SYSTEM_CHECKS = ["security.W019"]
 MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.locale.LocaleMiddleware',
+    # 'allauth.account.middleware.AccountMiddleware',
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django_browser_reload.middleware.BrowserReloadMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -138,6 +148,16 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# AUTHENTICATION_BACKENDS = (
+#     "allauth.account.auth_backends.AuthenticationBackend",
+# )
+#
+# SITE_ID = 1
+# ACCOUNT_EMAIL_VERIFICATION = "none"
+# LOGIN_REDIRECT_URL = "home"
+# ACCOUNT_LOGOUT_ON_GET = True
+#
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
@@ -193,7 +213,6 @@ else:
         },
     }
 
-LOGIN_REDIRECT_URL = '/'
 SERVER_LDAP = 'ldap://ad-server-1'
 DN_LDAP = "dc=smtp-group,dc=mg"
 

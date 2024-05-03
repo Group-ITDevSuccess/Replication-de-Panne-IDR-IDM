@@ -3,6 +3,7 @@ from . import views
 
 app_name = 'idr_idm'
 urlpatterns = [
+    # path('home/', views.index, name='index'),
     path('', views.index, name='index'),
 
     path('post-line-data/', views.post_line, name='post_line'),
