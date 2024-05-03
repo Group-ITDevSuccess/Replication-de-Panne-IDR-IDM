@@ -1,5 +1,6 @@
 from django import forms
 
+from utils.script import ldap_login_connection
 from .models import CustomUser
 
 
@@ -34,3 +35,14 @@ class LoginForm(forms.Form):
         error_messages={'min_length': 'Password must be at least 8 characters!'}
 
     )
+
+    def clean(self):
+        clean_data = super(LoginForm, self).clean()
+        username = clean_data.get('username')
+        password = clean_data.get('password')
+        if username and password and username not in ['admin.dev']:
+            connexion = ldap_login_connection(username=username, password=password)
+            if not connexion:
+                raise forms.ValidationError('Login ou mot de passe Incorrect !')
+
+        return clean_data

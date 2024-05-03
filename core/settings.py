@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     # SECURITY WARNING: keep the secret key used in production secret!
@@ -35,13 +35,16 @@ ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1', '172.16.112.2', '41.188.27
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.humanize',
     'import_export',
     'fontawesome_6',
     'admin_interface',
     'colorfield',
+    "debug_toolbar",
+    'django.contrib.humanize',
     'django.contrib.admin',
+    'django.contrib.admindocs',
     'django.contrib.auth',
+    'django.contrib.sites',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -52,12 +55,18 @@ INSTALLED_APPS = [
 
 ]
 
+INTERNAL_IPS = [
+    "127.0.0.1",
+    "localhost"
+]
+
 X_FRAME_OPTIONS = "SAMEORIGIN"
 SILENCED_SYSTEM_CHECKS = ["security.W019"]
 
 MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.locale.LocaleMiddleware',
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django_browser_reload.middleware.BrowserReloadMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -137,11 +146,10 @@ LANGUAGE_CODE = 'fr-FR'
 TIME_ZONE = 'Indian/Antananarivo'
 
 USE_I18N = True
-USE_L10N = False
+USE_L10N = True
 USE_TZ = True
 
-DATE_FORMAT = "%d/%m/%Y"
-DATE_INPUT_FORMATS = "%d/%m/%Y"
+DATE_INPUT_FORMATS = ("%d/%m/%Y", "%Y-%m-%d")
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/

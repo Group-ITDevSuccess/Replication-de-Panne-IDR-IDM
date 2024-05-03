@@ -21,6 +21,7 @@ from django.urls import path, include, re_path
 from django.views.static import serve
 
 urlpatterns = [
+
     path('admin/', admin.site.urls),
     path('accounts/', include('guard.urls')),
     path('i18n/', include('django.conf.urls.i18n')),
@@ -28,5 +29,6 @@ urlpatterns = [
     re_path(r"^static/(?P<path>.*)$", serve, {'document_root': settings.STATIC_ROOT}),
     re_path(r"^media/(?P<path>.*)$", serve, {'document_root': settings.MEDIA_ROOT}),
     path("__reload__/", include("django_browser_reload.urls")),
+    path("__debug__/", include("debug_toolbar.urls")),
 ]
 urlpatterns += staticfiles_urlpatterns()
