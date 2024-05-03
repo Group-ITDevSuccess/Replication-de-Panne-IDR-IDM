@@ -63,7 +63,6 @@ def format_datetime(value):
 
 @login_required
 def index(request):
-
     context = {
         'path': request.path,
         'form_add_machine': MachineForm(),
@@ -75,6 +74,7 @@ def index(request):
 @login_required
 def detail(request, uid):
     client = get_object_or_404(Client, uid=uid, used__exact=True)
+    print(client.uid)
     uid = client.uid
     name = client.name
     context = {
@@ -195,9 +195,9 @@ def delete_jointe(request):
 @csrf_exempt
 @login_required
 def get_all_machineidridm_with_breakdown_false(request):
-    if request.method == 'POST':
-        data = json.loads(request.body.decode('utf-8'))
-        uid = data.get('uid', None)
+    if request.method == 'GET':
+        # data = json.loads(request.body.decode('utf-8'))
+        uid = request.GET.get('uid', None)
     else:
         uid = None
     if uid is not None:

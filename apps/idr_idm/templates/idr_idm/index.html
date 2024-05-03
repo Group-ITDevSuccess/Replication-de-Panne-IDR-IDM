@@ -5,7 +5,7 @@
 {% load humanize %}
 {% block title %}IDR IDM{% endblock %}
 {% block style %}
-
+    
 {% endblock %}
 {% block content %}
     <main class="container-fluid mt-4">
@@ -388,9 +388,11 @@
                 if (start) {
                     if (leave) {
                         row.getElement().style.backgroundColor = "#1e3b20"; // Add 'active-row' class
+                        row.getElement().style.color = "#FFF"; // Add 'active-row' class
 
                     } else {
                         row.getElement().style.backgroundColor = "#3b1e2b"; //
+                        row.getElement().style.color = "#FFF";
                     }
                 }
             },
@@ -592,32 +594,34 @@
 
                             width: 150,
                         },
-                        {% if not uid_client %}
 
                         {
                             title: "CLIENT",
                             field: "client_name",
                             width: 125,
-                                editorParams: {
-                                        placeholderEmpty: "Aucun Client",
-                                        autocomplete: "true", allowEmpty: true, listOnEmpty: true,
-                                        valuesURL: "{% url 'idr_idm:get_all_client' %}",
-                                        placeholderLoading: "Chargement...",
-                                        formatter: function (value, data, cell) {
-                                            if (value && value.label) {
-                                                return value.label;
-                                            } else {
-                                                return "";
-                                            }
+                            {% if not uid_client %}
+                            
+                            editorParams: {
+                                    placeholderEmpty: "Aucun Client",
+                                    autocomplete: "true", allowEmpty: true, listOnEmpty: true,
+                                    valuesURL: "{% url 'idr_idm:get_all_client' %}",
+                                    placeholderLoading: "Chargement...",
+                                    formatter: function (value, data, cell) {
+                                        if (value && value.label) {
+                                            return value.label;
+                                        } else {
+                                            return "";
                                         }
+                                    }
 
-                                },
-                                {% if user.level_1 %}
-                                    editor: "list",
-                                {% endif %}
+                            },
+                            {% if user.level_1 %}
+                                editor: "list",
+                            {% endif %}
+                            {% endif %}
+                            
 
                         },
-                            {% endif %}
 
                         {
                             title: "Localisation",
@@ -785,8 +789,9 @@
                                 verticalNavigation: "table", //up and down arrow keys navigate away from cell without changing value
                             }
                         },
+                        /*
                         {
-                            title: "ETAT PIECES REF",
+                            title: "ETA PIECES REF",
                             field: "piece",
                             {% if user.level_2 %}
                                 editor: textareaPopup,
@@ -809,7 +814,7 @@
                                 // Return the plain text content
                                 return tempElement.textContent;
                             },
-                        },
+                        },*/
                         {
                             title: 'DIAGNOSTICS/TRAVAUX EFFECTUER AUX ATELIER & COMMENTAIRES SAV',
                             field: 'diagnostics',
