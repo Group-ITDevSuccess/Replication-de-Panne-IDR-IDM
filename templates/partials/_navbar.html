@@ -26,42 +26,7 @@
                     <a class="nav-link " href="{% url 'guard:index' %}" tabindex="-1">Administration</a>
                 </li>
             {% endif %}
-
-
         </ul>
-        {% if path == '/' %}
-            <div class="form-inline my-2 my-lg-0">
-                <label for="filter-field"></label>
-                <select id="filter-field" class="selectpicker mr-2" data-live-search="true" data-style="btn-primary"
-                        data-header="Selection un colonne">
-                    <option></option>
-                    <option value="matriculate">Immat ou N° série</option>
-                    <option value="model">Modèle / Remorque</option>
-                    <option value="client_name">Client</option>
-                    <option value="localisation_name">Localisation</option>
-                    <option value="status">Actif / Non Actif</option>
-                </select>
-
-                <label for="filter-type"></label>
-                <select id="filter-type" class="selectpicker mr-2" data-width="50px" data-style="btn-secondary">
-                    <option value="=">=</option>
-                    <option value="<"><</option>
-                    <option value="<="><=</option>
-                    <option value=">">></option>
-                    <option value=">=">>=</option>
-                    <option value="!=">!=</option>
-                    <option value="like">like</option>
-                </select>
-
-                <label for="filter-value"></label>
-                <input id="filter-value" type="text" class="form-control  mr-2" placeholder="Valeur à Filtrer">
-
-                <button class="btn btn-outline-success my-2 my-sm-0" id="filter-clear"><i
-                        class="fas fa-quidditch-broom-ball"></i>
-                </button>
-            </div>
-        {% endif %}
-
         <div class="btn text-white">
             <i class="fas fa-user " title=""></i> ({{ user.username }})
         </div>
